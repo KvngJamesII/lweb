@@ -1,114 +1,92 @@
-# WhatsApp Bot Pairing Web Interface
+# WhatsApp Bot Pairing Web Interface — LUCA Bot
 
-A modern web application that allows users to pair their WhatsApp accounts with a bot through a clean, browser-based interface — replacing the need for a Telegram bot.
+A full-stack web platform for pairing WhatsApp bots using the Baileys library. Supports multi-user authentication, admin panel with system monitoring, IP-based abuse prevention, and maintenance mode.
 
 ## Features
 
-- **Web-based pairing**: Users enter their phone number to receive a pairing code
-- **Real-time status updates**: Polls backend to detect successful connection
-- **WhatsApp Baileys integration**: Uses @whiskeysockets/baileys for WhatsApp Web protocol
-- **PostgreSQL storage**: Tracks pairing requests and connection status
-- **Modern React frontend**: Built with TypeScript, Tailwind CSS, and Framer Motion
+- **User Authentication**: Register/login with email + password, sessions stored in PostgreSQL
+- **IP-Based Abuse Prevention**: Max 3 accounts per IP address
+- **Web-Based Pairing**: Enter phone number, receive pairing code, connect WhatsApp
+- **User Dashboard**: Bot status, connect/disconnect, re-pair, change password
+- **Admin Panel**: User management (ban/unban), bot restart/stop, system stats (CPU/memory/uptime), maintenance mode toggle
+- **Bot Auto-Start**: After pairing, bot.cjs is launched as a child process
+- **Glassmorphism Design**: Modern UI with Framer Motion animations and confetti celebrations
 
 ## Architecture
 
 ### Frontend
 - React 18 with TypeScript
-- Vite for development and building
-- Tailwind CSS for styling
-- Framer Motion for animations
-- React Query for API state management
+- Vite dev server, Tailwind CSS, shadcn/ui
+- Framer Motion for animations, react-confetti
+- React Query for API state, wouter for routing
 
 ### Backend
-- Express.js server
-- TypeScript with ES modules
+- Express.js with express-session (PostgreSQL store via connect-pg-simple)
 - WhatsApp Baileys for bot pairing
 - PostgreSQL database (Drizzle ORM)
-- Pino for logging
+- bcrypt for password hashing
+
+## Database Schema (shared/schema.ts)
+
+- **users**: id, email (unique), password (hashed), role, banned, registrationIp, createdAt
+- **user_bots**: id, userId, phoneNumber, status, pairedAt
+- **site_settings**: id, key (unique), value — for maintenance mode etc.
+- **ip_tracking**: id, ipAddress, userId, action, createdAt
+- **pairing_requests**: id, phoneNumber, status, pairingCode, userId, createdAt
 
 ## Key Files
 
 ### Backend
-- `server/routes.ts` - API endpoints for pairing requests and status checks
-- `server/pairing.ts` - WhatsApp Baileys pairing logic
-- `server/storage.ts` - Database operations
-- `server/db.ts` - Database connection
-- `shared/schema.ts` - Database schema and types
-- `shared/routes.ts` - API contract definitions
+- `server/index.ts` - Express server with session middleware
+- `server/routes.ts` - All API endpoints (auth, pairing, bot, admin)
+- `server/pairing.ts` - WhatsApp Baileys pairing logic + bot process management
+- `server/storage.ts` - Database operations (IStorage interface)
+- `server/db.ts` - Database connection pool
+- `shared/schema.ts` - Drizzle schema, Zod validation schemas, types
 
 ### Frontend
-- `client/src/App.tsx` - Main application component
-- `client/src/pages/Home.tsx` - Pairing interface
+- `client/src/App.tsx` - Router with protected/admin routes
+- `client/src/pages/Login.tsx` - Login page
+- `client/src/pages/Register.tsx` - Registration page
+- `client/src/pages/Dashboard.tsx` - User dashboard with pairing flow
+- `client/src/pages/Admin.tsx` - Admin panel (overview, users, system tabs)
+- `client/src/pages/Maintenance.tsx` - Maintenance mode page
+- `client/src/hooks/use-auth.ts` - Auth context hook
 - `client/src/hooks/use-pairing.ts` - Pairing logic hook
-- `client/src/index.css` - Global styles and theme
+- `client/src/index.css` - Global styles, theme, glassmorphism
 
-## Environment Variables
-
-- `DATABASE_URL` - PostgreSQL connection string (auto-configured by Replit)
+### Bot
+- `bot.cjs` - WhatsApp bot (CommonJS, 6300+ lines), spawned after pairing
+- Requires: sharp, axios, yt-search (youtube-dl-exec optional)
 
 ## API Endpoints
 
-### POST `/api/pairing/request`
-Request a pairing code for a phone number.
+### Auth
+- POST `/api/auth/register` — Register (email, password, confirmPassword)
+- POST `/api/auth/login` — Login (email, password)
+- POST `/api/auth/logout` — Logout
+- GET `/api/auth/me` — Current user info + maintenance status
+- POST `/api/auth/change-password` — Change password (auth required)
 
-**Request body:**
-```json
-{
-  "phoneNumber": "1234567890"
-}
-```
+### Bot
+- GET `/api/bot/status` — Current user's bot status (auth required)
+- POST `/api/bot/disconnect` — Disconnect bot (auth required)
+- POST `/api/pairing/request` — Start pairing (auth required, body: {phoneNumber})
+- GET `/api/pairing/status/:phone` — Poll pairing status
 
-**Response:**
-```json
-{
-  "code": "ABCD1234",
-  "status": "code_generated"
-}
-```
+### Admin
+- GET `/api/admin/users` — All users with bot info
+- POST `/api/admin/users/:id/ban` — Ban/unban user
+- POST `/api/admin/bot/:userId/restart` — Restart user's bot
+- POST `/api/admin/bot/:userId/stop` — Stop user's bot
+- GET `/api/admin/system` — System stats (memory, CPU, uptime)
+- GET/POST `/api/admin/maintenance` — Get/toggle maintenance mode
 
-### GET `/api/pairing/status/:phone`
-Check the connection status for a phone number.
+## Environment Variables
 
-**Response:**
-```json
-{
-  "status": "connected"
-}
-```
+- `DATABASE_URL` - PostgreSQL connection string
+- `SESSION_SECRET` - Express session secret
 
-## How It Works
+## Default Admin Account
 
-1. User enters their phone number (with country code)
-2. Frontend sends POST request to `/api/pairing/request`
-3. Backend creates a WhatsApp socket and requests a pairing code
-4. Pairing code is returned to the frontend and displayed
-5. User enters the code in WhatsApp on their phone
-6. Frontend polls `/api/pairing/status/:phone` every 3 seconds
-7. When status becomes "connected", success message is shown
-8. Bot credentials are saved in `users/user_{phone}/auth_info/`
-
-## User Data Storage
-
-Each paired user gets a directory at `users/user_{phoneNumber}/` containing:
-- `auth_info/` - WhatsApp authentication credentials
-- `bot_data.json` - Bot configuration and settings
-
-## Development
-
-Run the application:
-```bash
-npm run dev
-```
-
-The server will start on port 5000 with the frontend served by Vite.
-
-## Dependencies
-
-Key packages:
-- `@whiskeysockets/baileys` - WhatsApp Web API
-- `express` - Web server
-- `drizzle-orm` - Database ORM
-- `pg` - PostgreSQL client
-- `pino` - Logging
-- `react` - UI library
-- `framer-motion` - Animations
+On first startup: admin@luca.bot / admin123

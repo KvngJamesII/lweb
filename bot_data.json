@@ -1,0 +1,20 @@
+{
+  "botOwner": "2347086589699",
+  "customWelcomeMessages": {},
+  "customGoodbyeMessages": {},
+  "welcomeEnabled": {},
+  "goodbyeEnabled": {},
+  "stickerCommands": {},
+  "adminSettings": {},
+  "userWarns": {},
+  "sudoUsers": [],
+  "wcgStats": {},
+  "afkUsers": {},
+  "antiMentionGroups": {},
+  "antiPhotoGroups": {},
+  "antiStatusGroups": {},
+  "antiTagGroups": {},
+  "antiSpamGroups": {},
+  "antiDeleteEnabled": false,
+  "lastSaved": "2026-02-26T09:02:57.434Z"
+}

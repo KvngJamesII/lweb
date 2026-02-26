@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertPairingRequestSchema, pairingRequests } from './schema';
+import { insertPairingRequestSchema } from './schema';
 
 export const errorSchemas = {
   validation: z.object({
