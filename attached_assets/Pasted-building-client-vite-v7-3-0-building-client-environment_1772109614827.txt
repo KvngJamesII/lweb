@@ -1,0 +1,45 @@
+building client...
+vite v7.3.0 building client environment for production...
+✓ 2277 modules transformed.
+../dist/public/index.html                   2.01 kB │ gzip:   0.77 kB
+../dist/public/assets/index-DMhCSogm.css   32.75 kB │ gzip:   6.23 kB
+../dist/public/assets/index-C7xr73dO.js   505.44 kB │ gzip: 148.51 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 7.91s
+building server...
+▲ [WARNING] "import.meta" is not available with the "cjs" output format and will be empty [empty-import-meta]
+
+    server/static.ts:6:33:
+      6 │ const __filename = fileURLToPath(import.meta.url);
+        ╵                                  ~~~~~~~~~~~
+
+  You need to set the output format to "esm" for "import.meta" to work correctly.
+
+▲ [WARNING] "import.meta" is not available with the "cjs" output format and will be empty [empty-import-meta]
+
+    server/pairing.ts:10:33:
+      10 │ const __filename = fileURLToPath(import.meta.url);
+         ╵                                  ~~~~~~~~~~~
+
+  You need to set the output format to "esm" for "import.meta" to work correctly.
+
+2 warnings
+
+  dist/index.cjs  1.0mb ⚠️
+
+⚡ Done in 139ms
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [all](ids: [ 1, 7 ])
+[PM2] [luca-bots](1) ✓
+[PM2] [luca-web](7) ✓
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 1  │ luca-bots          │ fork     │ 3    │ online    │ 0%       │ 58.4mb   │
+│ 7  │ luca-web           │ fork     │ 8    │ online    │ 0%       │ 18.0mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+root@ubuntu-s-1vcpu-2gb-70gb-intel-sfo2-01:/opt/luca-bot# 
