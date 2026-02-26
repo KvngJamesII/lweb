@@ -1,0 +1,63 @@
+
+No containers need to be restarted.
+
+User sessions running outdated binaries:
+ root @ session #6: sshd[1308]
+ root @ user manager service: systemd[1323]
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+Synchronizing state of postgresql.service with SysV service script with /usr/lib/systemd/systemd-sysv-install.
+Executing: /usr/lib/systemd/systemd-sysv-install enable postgresql
+CREATE DATABASE
+CREATE ROLE
+GRANT
+ALTER DATABASE
+Cloning into 'luca-bot'...
+remote: Enumerating objects: 1077, done.
+remote: Counting objects: 100% (1077/1077), done.
+remote: Compressing objects: 100% (956/956), done.
+remote: Total 1077 (delta 97), reused 1077 (delta 97), pack-reused 0 (from 0)
+Receiving objects: 100% (1077/1077), 602.37 KiB | 1.91 MiB/s, done.
+Resolving deltas: 100% (97/97), done.
+npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+
+added 656 packages, and audited 657 packages in 15s
+
+116 packages are looking for funding
+  run `npm fund` for details
+
+7 vulnerabilities (1 low, 1 moderate, 5 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.0 building client environment for production...
+✓ 2268 modules transformed.
+../dist/public/index.html                   2.01 kB │ gzip:   0.77 kB
+../dist/public/assets/index-yWTZKrLM.css   25.36 kB │ gzip:   5.22 kB
+../dist/public/assets/index-A3J0gVJm.js   478.69 kB │ gzip: 143.38 kB
+✓ built in 6.39s
+building server...
+▲ [WARNING] "import.meta" is not available with the "cjs" output format and will be empty [empty-import-meta]
+
+    server/pairing.ts:7:33:
+      7 │ const __filename = fileURLToPath(import.meta.url);
+        ╵                                  ~~~~~~~~~~~
+
+  You need to set the output format to "esm" for "import.meta" to work correctly.
+
+1 warning
+
+  dist/index.cjs  1.0mb ⚠️
+
+⚡ Done in 160ms
+root@ubuntu-s-1vcpu-2gb-70gb-intel-sfo2-01:/opt/luca-bot# 
