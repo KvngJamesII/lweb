@@ -1,0 +1,183 @@
+Create Droplets
+Learn
+Droplets are virtual machines that anyone can setup in seconds. You can use droplets, either standalone or as part of a larger, cloud based infrastructure.
+Choose Region
+New York
+San Francisco
+Amsterdam
+Singapore
+London
+Frankfurt
+Toronto
+Bangalore
+Sydney
+Atlanta
+Datacenter
+
+Tip: Select the datacenter closest to you or your users
+Dismiss
+Avoid any potential latency by selecting a region closest to you - a region is a geographic area where we have one or more datacenters.
+
+VPC Network - default-sfo3 Default
+All resources created in this datacenter will be members of the same VPC network. They can communicate securely over their Private IP addresses.
+
+Choose an image
+OS
+ 
+Marketplace (250) 
+Custom images
+
+Ubuntu
+
+Fedora
+
+Debian
+
+CentOS
+
+AlmaLinux
+
+Rocky Linux
+Version
+
+Choose Size
+Need help picking a plan? Help me choose 
+Droplet Type
+Shared CPU
+Basic
+(Plan selected)
+
+Dedicated CPU
+General Purpose
+CPU-Optimized
+Memory-Optimized
+Storage-Optimized
+Basic virtual machines with a mix of memory and compute resources. Best for small projects that can handle variable levels of CPU performance, like blogs, web apps and dev/test environments.
+
+CPU options
+Regular
+Disk type: SSD
+Premium Intel
+Disk: NVMe SSD
+Premium AMD
+Disk: NVMe SSD
+
+$  8 /mo
+$0.012 /hour
+1 GB / 1 Intel CPU
+35 GB NVMe SSDs
+1000 GB transfer
+ 
+$  16 /mo
+$0.024 /hour
+2 GB / 1 Intel CPU
+70 GB NVMe SSDs
+2 TB transfer
+ 
+$  24 /mo
+$0.036 /hour
+2 GB / 2 Intel CPUs
+90 GB NVMe SSDs
+3 TB transfer
+ 
+$  32 /mo
+$0.048 /hour
+4 GB / 2 Intel CPUs
+120 GB NVMe SSDs
+4 TB transfer
+ 
+$  48 /mo
+$0.071 /hour
+8 GB / 2 Intel CPUs
+160 GB NVMe SSDs
+5 TB transfer
+ 
+
+$  64 /mo
+$0.095 /hour
+8 GB / 4 Intel CPUs
+240 GB NVMe SSDs
+6 TB transfer
+ 
+
+$  96 /mo
+$0.143 /hour
+16 GB / 4 Intel CPUs
+320 GB NVMe SSDs
+8 TB transfer
+ 
+
+$  128 /mo
+$0.191 /hour
+16 GB / 8 Intel CPUs
+480 GB NVMe SSDs
+9 TB transfer
+ 
+
+$  192 /mo
+$0.286 /hour
+32 GB / 8 Intel CPUs
+640 GB NVMe SSDs
+10 TB transfer
+ 
+Currently selected: 4 GB / 2 CPUsShow all plans
+Additional Storage
+
+Need more disk space? Add a volume with no manual setup.
+Block storage volumes add extra disk space. We automatically format and mount your volume so it’s available as soon as your Droplet is, and you can move volumes seamlessly between Droplets at any time. Think of it like a flash drive for your VM.
+
+Backups
+
+Enable automated backup plan
+
+Automatically take backups at the time you specify
+
+Choose Authentication Method 
+SSH Key
+Connect to your Droplet with an SSH key pair
+Password
+Connect to your Droplet as the “root” user via password
+Create root password *
+Type your password...
+Show password
+Password requirements
+Must be at least 10 characters long
+Must contain 1 uppercase letter (cannot be first or last character)
+Must contain at least 1 number
+Cannot end in a number or special character
+Please store your password securely. You will not be sent an email containing the Droplet's details or password.
+
+We recommend these options
+
+
+Add improved metrics monitoring and alerting (free)
+
+Collect and graph expanded system-level metrics, track performance, and set up alerts instantly within the control panel.
+
+
+Add a worry-free Managed Database (+$15.00)
+
+Our scalable database cluster service includes daily backups with PITR, automated failover, and end-to-end SSL.
+
+Finalize Details
+Quantity
+
+Deploy multiple Droplets with the same configuration.
+
+Hostname
+
+Give your Droplets an identifying name you will remember them by.
+
+1  Droplet
+ubuntu-s-2vcpu-4gb-120gb-intel-sfo3-01
+Tags
+
+Type tags here
+Project
+
+This project has been selected as you only have one project
+$32.00/month
+
+$0.048/hour
+
+Create Via Command Line
