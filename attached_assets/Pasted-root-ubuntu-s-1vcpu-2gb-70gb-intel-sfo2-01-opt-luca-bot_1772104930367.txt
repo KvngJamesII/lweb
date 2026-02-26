@@ -1,0 +1,45 @@
+root@ubuntu-s-1vcpu-2gb-70gb-intel-sfo2-01:/opt/luca-bot# cd /opt/luca-bot
+git pull
+pm2 restart luca-web
+sleep 3
+pm2 logs luca-web --lines 10
+remote: Enumerating objects: 10, done.
+remote: Counting objects: 100% (10/10), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 6 (delta 4), reused 6 (delta 4), pack-reused 0 (from 0)
+Unpacking objects: 100% (6/6), 1.65 KiB | 843.00 KiB/s, done.
+From https://github.com/KvngJamesII/lweb
+   7aae88f..2fb84a1  main       -> origin/main
+Updating 7aae88f..2fb84a1
+Fast-forward
+ ...restarts-10-restart-delay-3000-EOF-pm2-start-ecosy_1772104711928.txt | 57 ++++++++++++++++++++++++++++++++++
+ server/static.ts                                                        |  6 +++-
+ 2 files changed, 62 insertions(+), 1 deletion(-)
+ create mode 100644 attached_assets/Pasted--max-restarts-10-restart-delay-3000-EOF-pm2-start-ecosy_1772104711928.txt
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [luca-web](ids: [ 6 ])
+[PM2][ERROR] Process 6 not found
+[TAILING] Tailing last 10 lines for [luca-web] process (change the value with --lines option)
+/root/.pm2/logs/luca-web-error.log last 10 lines:
+6|luca-web | [PROCESS] Process exiting with code: 0
+6|luca-web | [PROCESS] Unhandled rejection (kept alive): __dirname is not defined
+6|luca-web | [PROCESS] beforeExit with code: 0
+6|luca-web | [PROCESS] Process exiting with code: 0
+6|luca-web | [PROCESS] Unhandled rejection (kept alive): __dirname is not defined
+6|luca-web | [PROCESS] beforeExit with code: 0
+6|luca-web | [PROCESS] Process exiting with code: 0
+6|luca-web | [PROCESS] Unhandled rejection (kept alive): __dirname is not defined
+6|luca-web | [PROCESS] beforeExit with code: 0
+6|luca-web | [PROCESS] Process exiting with code: 0
+
+/root/.pm2/logs/luca-web-out.log last 10 lines:
+6|luca-web | [PAIRING] Baileys module pre-loaded
+6|luca-web | [PAIRING] Baileys module pre-loaded
+6|luca-web | [PAIRING] Baileys module pre-loaded
+6|luca-web | [PAIRING] Baileys module pre-loaded
+6|luca-web | [PAIRING] Baileys module pre-loaded
+6|luca-web | [PAIRING] Baileys module pre-loaded
+6|luca-web | [PAIRING] Baileys module pre-loaded
+6|luca-web | [PAIRING] Baileys module pre-loaded
+6|luca-web | [PAIRING] Baileys module pre-loaded
+6|luca-web | 11:21:14 AM [express] serving on port 5000
