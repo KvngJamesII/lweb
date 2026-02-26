@@ -1,0 +1,57 @@
+
+> rest-express@1.0.0 dev
+[PAIRING] Baileys module pre-loadedndex.ts
+8:46:53 AM [express] serving on port 5000
+[API] Received pairing request for 2347086589699
+[PAIRING] WhatsApp version: 2.3000.1033846690
+[PAIRING] Starting pairing for 2347086589699
+[PAIRING] Attempt 1/3 for 2347086589699
+[PAIRING] conn=connecting qr=false status=undefined codeGen=false
+[PAIRING] conn=undefined qr=true status=undefined codeGen=false
+[PAIRING] Code: AD8DMK2G
+[API] Pairing code generated: AD8DMK2G
+8:49:51 AM [express] POST /api/pairing/request 200 in 4083ms :: {"code":"AD8DMK2G","status":"code_generated"}
+8:49:51 AM [express] GET /api/pairing/status/2347086589699 200 in 2ms :: {"status":"code_generated"}
+8:49:55 AM [express] GET /api/pairing/status/2347086589699 304 in 1ms :: {"status":"code_generated"}
+8:49:58 AM [express] GET /api/pairing/status/2347086589699 304 in 1ms :: {"status":"code_generated"}
+8:50:01 AM [express] GET /api/pairing/status/2347086589699 304 in 2ms :: {"status":"code_generated"}
+8:50:04 AM [express] GET /api/pairing/status/2347086589699 304 in 2ms :: {"status":"code_generated"}
+8:50:08 AM [express] GET /api/pairing/status/2347086589699 304 in 2ms :: {"status":"code_generated"}
+8:50:11 AM [express] GET /api/pairing/status/2347086589699 304 in 2ms :: {"status":"code_generated"}
+[PAIRING] conn=undefined qr=false status=undefined codeGen=true
+[PAIRING] conn=close qr=false status=515 codeGen=true
+8:50:14 AM [express] GET /api/pairing/status/2347086589699 304 in 2ms :: {"status":"code_generated"}
+[PAIRING] Attempt 2/3 for 2347086589699
+[PAIRING] conn=connecting qr=false status=undefined codeGen=true
+[PAIRING] conn=undefined qr=false status=undefined codeGen=true
+[PAIRING] conn=open qr=false status=undefined codeGen=true
+[PAIRING] CONNECTED for 2347086589699
+[PAIRING] Credentials copied to root auth_info/
+[API] Connection successful for 2347086589699
+[PAIRING] conn=undefined qr=false status=undefined codeGen=true
+8:50:17 AM [express] GET /api/pairing/status/2347086589699 200 in 3ms :: {"status":"connected"}
+[PAIRING] conn=close qr=false status=undefined codeGen=true
+[PAIRING] Starting bot for owner 2347086589699...
+[BOT-ERR] node:internal/modules/cjs/loader:1210
+[BOT-ERR]   throw err;
+[BOT-ERR]   ^
+[BOT-ERR] 
+[BOT-ERR] Error: Cannot find module 'youtube-dl-exec'
+[BOT-ERR] Require stack:
+[BOT-ERR] - /home/runner/workspace/bot.cjs
+[BOT-ERR]     at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+[BOT-ERR]     at Module._load (node:internal/modules/cjs/loader:1038:27)
+[BOT-ERR]     at Module.require (node:internal/modules/cjs/loader:1289:19)
+[BOT-ERR]     at require (node:internal/modules/helpers:182:18)
+[BOT-ERR]     at Object.<anonymous> (/home/runner/workspace/bot.cjs:14:19)
+[BOT-ERR]     at Module._compile (node:internal/modules/cjs/loader:1521:14)
+[BOT-ERR]     at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+[BOT-ERR]     at Module.load (node:internal/modules/cjs/loader:1266:32)
+[BOT-ERR]     at Module._load (node:internal/modules/cjs/loader:1091:12)
+[BOT-ERR]     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12) {
+[BOT-ERR]   code: 'MODULE_NOT_FOUND',
+[BOT-ERR]   requireStack: [ '/home/runner/workspace/bot.cjs' ]
+[BOT-ERR] }
+[BOT-ERR] 
+[BOT-ERR] Node.js v20.20.0
+[PAIRING] Bot process exited with code 1

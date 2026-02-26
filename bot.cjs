@@ -11,7 +11,13 @@ const pino = require("pino");
 const fs = require("fs");
 const path = require("path");
 const sharp = require("sharp");
-const youtubedl = require('youtube-dl-exec');
+let youtubedl;
+try {
+  youtubedl = require('youtube-dl-exec');
+} catch {
+  console.log('[BOT] youtube-dl-exec not available - YouTube download features disabled');
+  youtubedl = null;
+}
 
 const logger = pino({
   level: "info",
@@ -6186,6 +6192,12 @@ _Use responsibly!_`,
 
 // Play music command function
 async function playSongCommand(sock, message, args, logger) {
+  if (!youtubedl) {
+    await sock.sendMessage(message.key.remoteJid, {
+      text: "❌ YouTube download is not available in this environment.",
+    });
+    return;
+  }
   if (!args || args.length < 1) {
     await sock.sendMessage(message.key.remoteJid, {
       text: "❌ Usage: .play [song name]",
