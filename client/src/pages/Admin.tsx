@@ -212,9 +212,9 @@ export default function Admin() {
               <div className="glass-card rounded-2xl p-6 md:col-span-2">
                 <h3 className="text-sm font-semibold text-muted-foreground mb-4">Memory Usage</h3>
                 <div className="space-y-3">
-                  <ProgressBar label="RSS" value={sys?.memory.rss || 0} max={sys?.memory.systemTotal || 1} />
-                  <ProgressBar label="Heap Used" value={sys?.memory.heapUsed || 0} max={sys?.memory.heapTotal || 1} />
-                  <ProgressBar label="External" value={sys?.memory.external || 0} max={sys?.memory.heapTotal || 1} />
+                  <ProgressBar label="System Used" value={(sys?.memory.systemTotal || 0) - (sys?.memory.systemFree || 0)} max={sys?.memory.systemTotal || 1} />
+                  <ProgressBar label="App Memory (RSS)" value={sys?.memory.rss || 0} max={sys?.memory.systemTotal || 1} />
+                  <ProgressBar label="Heap Used" value={sys?.memory.heapUsed || 0} max={sys?.memory.systemTotal || 1} />
                 </div>
               </div>
 
