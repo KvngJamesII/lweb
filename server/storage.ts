@@ -1,15 +1,22 @@
 import { db } from "./db";
 import { pairingRequests, type InsertPairingRequest, type PairingRequest } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
   createPairingRequest(phone: string): Promise<PairingRequest>;
   updatePairingRequest(phone: string, updates: Partial<PairingRequest>): Promise<PairingRequest | undefined>;
   getPairingRequestByPhone(phone: string): Promise<PairingRequest | undefined>;
+  deletePairingRequestsByPhone(phone: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
+  async deletePairingRequestsByPhone(phone: string): Promise<void> {
+    await db.delete(pairingRequests)
+      .where(eq(pairingRequests.phoneNumber, phone));
+  }
+
   async createPairingRequest(phone: string): Promise<PairingRequest> {
+    await this.deletePairingRequestsByPhone(phone);
     const [request] = await db.insert(pairingRequests)
       .values({ phoneNumber: phone })
       .returning();
@@ -28,6 +35,7 @@ export class DatabaseStorage implements IStorage {
     const [request] = await db.select()
       .from(pairingRequests)
       .where(eq(pairingRequests.phoneNumber, phone))
+      .orderBy(desc(pairingRequests.id))
       .limit(1);
     return request;
   }
