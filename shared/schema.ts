@@ -14,7 +14,7 @@ export const users = pgTable("users", {
 
 export const userBots = pgTable("user_bots", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id),
   phoneNumber: text("phone_number").notNull(),
   status: text("status").notNull().default("disconnected"),
   pairedAt: timestamp("paired_at").defaultNow(),
@@ -29,7 +29,7 @@ export const siteSettings = pgTable("site_settings", {
 export const ipTracking = pgTable("ip_tracking", {
   id: serial("id").primaryKey(),
   ipAddress: text("ip_address").notNull(),
-  userId: integer("user_id"),
+  userId: integer("user_id").references(() => users.id),
   action: text("action").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });

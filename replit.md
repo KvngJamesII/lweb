@@ -32,7 +32,7 @@ A full-stack web platform for pairing WhatsApp bots using the Baileys library. S
 ## Database Schema (shared/schema.ts)
 
 - **users**: id, email (unique), password (hashed), role, banned, registrationIp, createdAt
-- **user_bots**: id, userId, phoneNumber, status, pairedAt
+- **user_bots**: id, userId (FK→users), phoneNumber, status, pairedAt
 - **site_settings**: id, key (unique), value — for maintenance mode etc.
 - **ip_tracking**: id, ipAddress, userId, action, createdAt
 - **pairing_requests**: id, phoneNumber, status, pairingCode, userId, createdAt
