@@ -3,6 +3,7 @@ import pino from 'pino';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { spawn, ChildProcess } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -122,11 +123,23 @@ export class PairingHandler {
                 }, null, 2));
               } catch {}
 
+              try {
+                const rootAuthDir = path.join(__dirname, '..', 'auth_info');
+                if (fs.existsSync(rootAuthDir)) {
+                  fs.rmSync(rootAuthDir, { recursive: true, force: true });
+                }
+                PairingHandler.copyDir(authDir, rootAuthDir);
+                console.log(`[PAIRING] Credentials copied to root auth_info/`);
+              } catch (e: any) {
+                console.error(`[PAIRING] Error copying credentials:`, e.message);
+              }
+
               onConnected();
 
               setTimeout(() => {
                 try { sock.end(undefined); } catch {}
                 activeSessions.delete(phone);
+                PairingHandler.startBot(phone);
               }, 3000);
             }
 
@@ -189,5 +202,68 @@ export class PairingHandler {
       return true;
     }
     return false;
+  }
+
+  static copyDir(src: string, dest: string): void {
+    fs.mkdirSync(dest, { recursive: true });
+    const entries = fs.readdirSync(src, { withFileTypes: true });
+    for (const entry of entries) {
+      const srcPath = path.join(src, entry.name);
+      const destPath = path.join(dest, entry.name);
+      if (entry.isDirectory()) {
+        PairingHandler.copyDir(srcPath, destPath);
+      } else {
+        fs.copyFileSync(srcPath, destPath);
+      }
+    }
+  }
+
+  private static botProcess: ChildProcess | null = null;
+
+  static startBot(ownerPhone: string): void {
+    if (PairingHandler.botProcess) {
+      console.log('[PAIRING] Killing existing bot process...');
+      try { PairingHandler.botProcess.kill(); } catch {}
+      PairingHandler.botProcess = null;
+    }
+
+    const botPath = path.join(__dirname, '..', 'bot.cjs');
+    if (!fs.existsSync(botPath)) {
+      console.error('[PAIRING] bot.cjs not found at:', botPath);
+      return;
+    }
+
+    console.log(`[PAIRING] Starting bot for owner ${ownerPhone}...`);
+
+    const child = spawn('node', [botPath], {
+      cwd: path.join(__dirname, '..'),
+      env: {
+        ...process.env,
+        BOT_OWNER: ownerPhone,
+        YOUTUBE_DL_SKIP_PYTHON_CHECK: '1',
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    child.stdout?.on('data', (data: Buffer) => {
+      const lines = data.toString().trim().split('\n');
+      for (const line of lines) {
+        console.log(`[BOT] ${line}`);
+      }
+    });
+
+    child.stderr?.on('data', (data: Buffer) => {
+      const lines = data.toString().trim().split('\n');
+      for (const line of lines) {
+        console.error(`[BOT-ERR] ${line}`);
+      }
+    });
+
+    child.on('exit', (code) => {
+      console.log(`[PAIRING] Bot process exited with code ${code}`);
+      PairingHandler.botProcess = null;
+    });
+
+    PairingHandler.botProcess = child;
   }
 }

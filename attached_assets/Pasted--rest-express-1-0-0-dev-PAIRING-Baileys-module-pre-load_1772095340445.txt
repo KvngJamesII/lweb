@@ -1,0 +1,32 @@
+
+> rest-express@1.0.0 dev
+[PAIRING] Baileys module pre-loadedndex.ts
+8:40:27 AM [express] serving on port 5000
+[API] Received pairing request for 2347086589699
+[PAIRING] WhatsApp version: 2.3000.1033846690
+[PAIRING] Starting pairing for 2347086589699
+[PAIRING] Attempt 1/3 for 2347086589699
+[PAIRING] conn=connecting qr=false status=undefined codeGen=false
+[PAIRING] conn=undefined qr=true status=undefined codeGen=false
+[PAIRING] Code: 2BBRD14Y
+[API] Pairing code generated: 2BBRD14Y
+8:40:43 AM [express] POST /api/pairing/request 200 in 4074ms :: {"code":"2BBRD14Y","status":"code_generated"}
+8:40:44 AM [express] GET /api/pairing/status/2347086589699 304 in 3ms :: {"status":"code_generated"}
+8:40:47 AM [express] GET /api/pairing/status/2347086589699 304 in 1ms :: {"status":"code_generated"}
+8:40:50 AM [express] GET /api/pairing/status/2347086589699 304 in 1ms :: {"status":"code_generated"}
+8:40:53 AM [express] GET /api/pairing/status/2347086589699 304 in 3ms :: {"status":"code_generated"}
+8:40:57 AM [express] GET /api/pairing/status/2347086589699 304 in 1ms :: {"status":"code_generated"}
+8:41:00 AM [express] GET /api/pairing/status/2347086589699 304 in 1ms :: {"status":"code_generated"}
+8:41:03 AM [express] GET /api/pairing/status/2347086589699 304 in 1ms :: {"status":"code_generated"}
+[PAIRING] conn=undefined qr=false status=undefined codeGen=true
+[PAIRING] conn=close qr=false status=515 codeGen=true
+8:41:07 AM [express] GET /api/pairing/status/2347086589699 304 in 1ms :: {"status":"code_generated"}
+[PAIRING] Attempt 2/3 for 2347086589699
+[PAIRING] conn=connecting qr=false status=undefined codeGen=true
+[PAIRING] conn=undefined qr=false status=undefined codeGen=true
+[PAIRING] conn=undefined qr=false status=undefined codeGen=true
+[PAIRING] conn=open qr=false status=undefined codeGen=true
+[PAIRING] CONNECTED for 2347086589699
+[API] Connection successful for 2347086589699
+8:41:10 AM [express] GET /api/pairing/status/2347086589699 200 in 1ms :: {"status":"connected"}
+[PAIRING] conn=close qr=false status=undefined codeGen=true
