@@ -1,0 +1,57 @@
+    },
+    max_restarts: 10,
+    restart_delay: 3000
+  }]
+};
+EOF
+
+pm2 start ecosystem.config.cjs
+pm2 save
+sleep 3
+pm2 logs luca-web --lines 10
+[PM2] Applying action deleteProcessId on app [luca-web](ids: [ 5 ])
+[PM2] [luca-web](5) ✓
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 1  │ luca-bots          │ fork     │ 0    │ online    │ 0%       │ 54.3mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+[PM2][WARN] Applications luca-web not running, starting...
+[PM2] App [luca-web] launched (1 instances)
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 1  │ luca-bots          │ fork     │ 0    │ online    │ 0%       │ 54.3mb   │
+│ 6  │ luca-web           │ fork     │ 0    │ online    │ 0%       │ 17.4mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /root/.pm2/dump.pm2
+[TAILING] Tailing last 10 lines for [luca-web] process (change the value with --lines option)
+/root/.pm2/logs/luca-web-out.log last 10 lines:
+6|luca-web | [PAIRING] Baileys module pre-loaded
+6|luca-web | [PAIRING] Baileys module pre-loaded
+6|luca-web | [PAIRING] Baileys module pre-loaded
+6|luca-web | [PAIRING] Baileys module pre-loaded
+6|luca-web | [PAIRING] Baileys module pre-loaded
+6|luca-web | [PAIRING] Baileys module pre-loaded
+6|luca-web | [PAIRING] Baileys module pre-loaded
+6|luca-web | [PAIRING] Baileys module pre-loaded
+6|luca-web | [PAIRING] Baileys module pre-loaded
+6|luca-web | [PAIRING] Baileys module pre-loaded
+
+/root/.pm2/logs/luca-web-error.log last 10 lines:
+6|luca-web | [PROCESS] Process exiting with code: 0
+6|luca-web | [PROCESS] Unhandled rejection (kept alive): __dirname is not defined
+6|luca-web | [PROCESS] beforeExit with code: 0
+6|luca-web | [PROCESS] Process exiting with code: 0
+6|luca-web | [PROCESS] Unhandled rejection (kept alive): __dirname is not defined
+6|luca-web | [PROCESS] beforeExit with code: 0
+6|luca-web | [PROCESS] Process exiting with code: 0
+6|luca-web | [PROCESS] Unhandled rejection (kept alive): __dirname is not defined
+6|luca-web | [PROCESS] Received SIGINT
+6|luca-web | [PROCESS] Unhandled rejection (kept alive): __dirname is not defined
+
+6|luca-web  | [PROCESS] beforeExit with code: 0
+6|luca-web  | [PROCESS] Process exiting with code: 0
+6|luca-web  | [PAIRING] Baileys module pre-loaded
+6|luca-web  | [PROCESS] Unhandled rejection (kept alive): __dirname is not defined
