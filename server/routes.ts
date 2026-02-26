@@ -17,6 +17,9 @@ export async function registerRoutes(
 
       console.log(`[API] Received pairing request for ${phoneNumber}`);
 
+      PairingHandler.cancelPairing(phoneNumber);
+      PairingHandler.deleteUserData(phoneNumber);
+
       await storage.createPairingRequest(phoneNumber);
 
       PairingHandler.generatePairingCode(
