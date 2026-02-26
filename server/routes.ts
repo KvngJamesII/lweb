@@ -48,14 +48,14 @@ export async function registerRoutes(
 
   app.use("/api", maintenanceGuard);
 
-  const adminExists = await storage.getUserByEmail("admin@luca.bot");
+  const adminExists = await storage.getUserByEmail("onlyidledev@gmail.com");
   if (!adminExists) {
-    const admin = await storage.createUser("admin@luca.bot", "admin123");
+    const admin = await storage.createUser("onlyidledev@gmail.com", "isr828u2");
     const { db } = await import("./db");
     const { users } = await import("@shared/schema");
     const { eq } = await import("drizzle-orm");
     await db.update(users).set({ role: "admin" }).where(eq(users.id, admin.id));
-    console.log("[AUTH] Default admin created — email: admin@luca.bot / password: admin123");
+    console.log("[AUTH] Default admin created — email: onlyidledev@gmail.com");
   }
 
   app.post("/api/auth/register", async (req, res) => {
