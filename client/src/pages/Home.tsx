@@ -204,7 +204,7 @@ export default function Home() {
                     <span className="text-sm font-medium">Waiting for WhatsApp connection...</span>
                   </div>
                   <p className="text-xs text-muted-foreground max-w-[280px]">
-                    Open WhatsApp > Linked Devices > Link a Device > Link with phone number instead.
+                    Open WhatsApp → Linked Devices → Link a Device → Link with phone number instead.
                   </p>
                 </div>
                 
