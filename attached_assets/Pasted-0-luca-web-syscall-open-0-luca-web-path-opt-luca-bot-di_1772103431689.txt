@@ -1,0 +1,30 @@
+0|luca-web |   syscall: 'open',
+0|luca-web |   path: '/opt/luca-bot/dist/table.sql'
+0|luca-web | }
+0|luca-web | Error: ENOENT: no such file or directory, open '/opt/luca-bot/dist/table.sql'
+0|luca-web |     at async open (node:internal/fs/promises:634:25)
+0|luca-web |     at async Object.readFile (node:internal/fs/promises:1236:14)
+0|luca-web |     at async n._rawEnsureSessionStoreTable (/opt/luca-bot/dist/index.cjs:58:28756)
+0|luca-web |     at async n._asyncQuery (/opt/luca-bot/dist/index.cjs:58:29841)
+
+/root/.pm2/logs/luca-web-out.log last 20 lines:
+0|luca-web | 10:50:49 AM [express] POST /api/auth/login 200 in 74ms :: {"id":3,"email":"isr9216411@gmail.com","role":"user"}
+0|luca-web | 10:50:49 AM [express] GET /api/auth/me 401 in 3ms :: {"message":"Not authenticated"}
+0|luca-web | 10:50:50 AM [express] GET /api/auth/me 401 in 3ms :: {"message":"Not authenticated"}
+0|luca-web | 10:51:05 AM [express] POST /api/auth/login 200 in 92ms :: {"id":3,"email":"isr9216411@gmail.com","role":"user"}
+0|luca-web | 10:51:06 AM [express] GET /api/auth/me 401 in 3ms :: {"message":"Not authenticated"}
+0|luca-web | 10:51:06 AM [express] GET /api/auth/me 401 in 4ms :: {"message":"Not authenticated"}
+0|luca-web | [PAIRING] Baileys module pre-loaded
+0|luca-web | 10:53:25 AM [express] serving on port 5000
+0|luca-web | 10:54:03 AM [express] GET /api/auth/me 401 in 24ms :: {"message":"Not authenticated"}
+0|luca-web | 10:54:05 AM [express] GET /api/auth/me 401 in 3ms :: {"message":"Not authenticated"}
+0|luca-web | 10:54:31 AM [express] POST /api/auth/login 200 in 96ms :: {"id":3,"email":"isr9216411@gmail.com","role":"user"}
+0|luca-web | 10:54:31 AM [express] GET /api/auth/me 401 in 3ms :: {"message":"Not authenticated"}
+0|luca-web | 10:54:31 AM [express] GET /api/auth/me 401 in 3ms :: {"message":"Not authenticated"}
+0|luca-web | 10:54:35 AM [express] GET /api/auth/me 401 in 3ms :: {"message":"Not authenticated"}
+0|luca-web | 10:54:44 AM [express] POST /api/auth/register 200 in 84ms :: {"id":4,"email":"isr9216471@gmail.com","role":"user"}
+0|luca-web | 10:54:44 AM [express] GET /api/auth/me 401 in 2ms :: {"message":"Not authenticated"}
+0|luca-web | 10:54:45 AM [express] GET /api/auth/me 401 in 2ms :: {"message":"Not authenticated"}
+0|luca-web | 10:54:50 AM [express] POST /api/auth/login 200 in 74ms :: {"id":4,"email":"isr9216471@gmail.com","role":"user"}
+0|luca-web | 10:54:51 AM [express] GET /api/auth/me 401 in 3ms :: {"message":"Not authenticated"}
+0|luca-web | 10:54:51 AM [express] GET /api/auth/me 401 in 3ms :: {"message":"Not authenticated"}

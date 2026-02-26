@@ -35,11 +35,22 @@ app.use(
 app.use(express.urlencoded({ extended: false }));
 
 const PgStore = connectPgSimple(session);
+
+pool.query(`
+  CREATE TABLE IF NOT EXISTS "session" (
+    "sid" varchar NOT NULL COLLATE "default",
+    "sess" json NOT NULL,
+    "expire" timestamp(6) NOT NULL,
+    CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+  ) WITH (OIDS=FALSE);
+  CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");
+`).catch(() => {});
+
 app.use(
   session({
     store: new PgStore({
       pool: pool,
-      createTableIfMissing: true,
+      tableName: "session",
     }),
     secret: process.env.SESSION_SECRET!,
     resave: false,
