@@ -1,0 +1,81 @@
+root@ubuntu-s-1vcpu-2gb-70gb-intel-sfo2-01:~# cd /opt/luca-bot
+git pull
+pm2 start /usr/bin/tsx --name luca-web -- /opt/luca-bot/server/index.ts
+pm2 save
+pm2 logs luca-web --lines 10
+remote: Enumerating objects: 10, done.
+remote: Counting objects: 100% (10/10), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 6 (delta 4), reused 6 (delta 4), pack-reused 0 (from 0)
+Unpacking objects: 100% (6/6), 1.63 KiB | 556.00 KiB/s, done.
+From https://github.com/KvngJamesII/lweb
+   f58b300..45d9e6f  main       -> origin/main
+Updating f58b300..45d9e6f
+Fast-forward
+ ...-luca-web-syscall-open-0-luca-web-path-opt-luca-bot-di_1772103431689.txt | 30 ++++++++++++++++++++++++++++++
+ server/index.ts                                                             | 13 ++++++++++++-
+ 2 files changed, 42 insertions(+), 1 deletion(-)
+ create mode 100644 attached_assets/Pasted-0-luca-web-syscall-open-0-luca-web-path-opt-luca-bot-di_1772103431689.txt
+[PM2] Starting /usr/bin/tsx in fork_mode (1 instance)
+[PM2] Done.
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 1  │ luca-bots          │ fork     │ 0    │ online    │ 0%       │ 54.5mb   │
+│ 3  │ luca-web           │ fork     │ 0    │ online    │ 0%       │ 17.5mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /root/.pm2/dump.pm2
+[TAILING] Tailing last 10 lines for [luca-web] process (change the value with --lines option)
+/root/.pm2/logs/luca-web-out.log last 10 lines:
+3|luca-web | [PAIRING] Baileys module pre-loaded
+3|luca-web | [PAIRING] Baileys module pre-loaded
+3|luca-web | [PAIRING] Baileys module pre-loaded
+3|luca-web | [PAIRING] Baileys module pre-loaded
+3|luca-web | [PAIRING] Baileys module pre-loaded
+3|luca-web | [PAIRING] Baileys module pre-loaded
+3|luca-web | [PAIRING] Baileys module pre-loaded
+3|luca-web | [PAIRING] Baileys module pre-loaded
+3|luca-web | [PAIRING] Baileys module pre-loaded
+3|luca-web | [PAIRING] Baileys module pre-loaded
+
+/root/.pm2/logs/luca-web-error.log last 10 lines:
+3|luca-web | [PROCESS] Process exiting with code: 0
+3|luca-web | [PROCESS] Unhandled rejection (kept alive): __dirname is not defined
+3|luca-web | [PROCESS] beforeExit with code: 0
+3|luca-web | [PROCESS] Process exiting with code: 0
+3|luca-web | [PROCESS] Unhandled rejection (kept alive): __dirname is not defined
+3|luca-web | [PROCESS] beforeExit with code: 0
+3|luca-web | [PROCESS] Process exiting with code: 0
+3|luca-web | [PROCESS] Unhandled rejection (kept alive): __dirname is not defined
+3|luca-web | [PROCESS] beforeExit with code: 0
+3|luca-web | [PROCESS] Process exiting with code: 0
+
+3|luca-web  | /opt/luca-bot/server/db.ts:8
+3|luca-web  |   throw new Error(
+3|luca-web  |         ^
+3|luca-web  | Error: DATABASE_URL must be set. Did you forget to provision a database?
+3|luca-web  |     at <anonymous> (/opt/luca-bot/server/db.ts:8:9)
+3|luca-web  |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+3|luca-web  |     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+3|luca-web  |     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+3|luca-web  | Node.js v20.20.0
+3|luca-web  | /opt/luca-bot/server/db.ts:8
+3|luca-web  |   throw new Error(
+3|luca-web  |         ^
+3|luca-web  | Error: DATABASE_URL must be set. Did you forget to provision a database?
+3|luca-web  |     at <anonymous> (/opt/luca-bot/server/db.ts:8:9)
+3|luca-web  |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+3|luca-web  |     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+3|luca-web  |     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+3|luca-web  | Node.js v20.20.0
+3|luca-web  | /opt/luca-bot/server/db.ts:8
+3|luca-web  |   throw new Error(
+3|luca-web  |         ^
+3|luca-web  | Error: DATABASE_URL must be set. Did you forget to provision a database?
+3|luca-web  |     at <anonymous> (/opt/luca-bot/server/db.ts:8:9)
+3|luca-web  |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+3|luca-web  |     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+3|luca-web  |     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+3|luca-web  | Node.js v20.20.0
+^C
