@@ -9,8 +9,8 @@ app.use(express.json({ limit: '10mb' }));
 
 const PORT = process.env.BOT_MANAGER_PORT || 3500;
 const API_KEY = process.env.BOT_MANAGER_API_KEY;
-const BOTS_DIR = path.join(__dirname, 'bots');
-const BOT_SCRIPT = path.join(__dirname, 'bot.cjs');
+const BOTS_DIR = path.join(__dirname, '..', 'bots');
+const BOT_SCRIPT = path.join(__dirname, '..', 'bot.cjs');
 
 if (!API_KEY) {
   console.error('[FATAL] BOT_MANAGER_API_KEY environment variable is required');
