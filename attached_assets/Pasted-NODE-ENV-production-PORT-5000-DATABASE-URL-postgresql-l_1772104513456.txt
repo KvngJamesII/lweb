@@ -1,0 +1,56 @@
+NODE_ENV=production
+PORT=5000
+DATABASE_URL=postgresql://luca:luca_secure_pass_123@localhost:5432/luca_bot
+SESSION_SECRET=66be10afe6fe5eb6b99af0bc912037904c3caa41ac2d95aea4a3112f4ec7f61b
+BOT_MANAGER_API_KEY=cee30ac04dda57840edc8b4ec8df02111d08cc9301dcf76616666dc2e334e793
+VPS_URL=http://localhost:3500
+VPS_API_KEY=cee30ac04dda57840edc8b4ec8df02111d08cc9301dcf76616666dc2e334e793
+root@ubuntu-s-1vcpu-2gb-70gb-intel-sfo2-01:/opt/luca-bot# cat > /opt/luca-bot/start.sh << 'EOF'
+#!/bin/bash
+set -a
+source /opt/luca-bot/.env
+set +a
+exec /usr/bin/tsx /opt/luca-bot/server/index.ts
+EOF
+chmod +x /opt/luca-bot/start.sh
+pm2 start /opt/luca-bot/start.sh --name luca-web
+pm2 save
+pm2 logs luca-web --lines 10
+[PM2] Starting /opt/luca-bot/start.sh in fork_mode (1 instance)
+[PM2] Done.
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 1  │ luca-bots          │ fork     │ 0    │ online    │ 0%       │ 54.1mb   │
+│ 5  │ luca-web           │ fork     │ 0    │ online    │ 0%       │ 12.0mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /root/.pm2/dump.pm2
+[TAILING] Tailing last 10 lines for [luca-web] process (change the value with --lines option)
+/root/.pm2/logs/luca-web-out.log last 10 lines:
+5|luca-web | [PAIRING] Baileys module pre-loaded
+5|luca-web | [PAIRING] Baileys module pre-loaded
+5|luca-web | [PAIRING] Baileys module pre-loaded
+5|luca-web | [PAIRING] Baileys module pre-loaded
+5|luca-web | [PAIRING] Baileys module pre-loaded
+5|luca-web | [PAIRING] Baileys module pre-loaded
+5|luca-web | [PAIRING] Baileys module pre-loaded
+5|luca-web | [PAIRING] Baileys module pre-loaded
+5|luca-web | [PAIRING] Baileys module pre-loaded
+5|luca-web | [PAIRING] Baileys module pre-loaded
+
+/root/.pm2/logs/luca-web-error.log last 10 lines:
+5|luca-web |         ^
+5|luca-web | 
+5|luca-web | 
+5|luca-web | Error: DATABASE_URL must be set. Did you forget to provision a database?
+5|luca-web |     at <anonymous> (/opt/luca-bot/server/db.ts:8:9)
+5|luca-web |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+5|luca-web |     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+5|luca-web |     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+5|luca-web | 
+5|luca-web | Node.js v20.20.0
+
+5|luca-web  | [PAIRING] Baileys module pre-loaded
+5|luca-web  | [PROCESS] Unhandled rejection (kept alive): __dirname is not defined
+5|luca-web  | [PROCESS] beforeExit with code: 0
