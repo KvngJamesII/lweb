@@ -1,0 +1,77 @@
+[PM2] Successfully saved in /root/.pm2/dump.pm2
+root@ubuntu-s-1vcpu-2gb-70gb-intel-sfo2-01:/opt/luca-bot# ufw allow 22/tcp
+ufw allow 80/tcp
+ufw allow 443/tcp
+ufw --force enable
+Rules updated
+Rules updated (v6)
+Rules updated
+Rules updated (v6)
+Rules updated
+Rules updated (v6)
+Firewall is active and enabled on system startup
+root@ubuntu-s-1vcpu-2gb-70gb-intel-sfo2-01:/opt/luca-bot# pm2 logs luca-web --lines 20
+[TAILING] Tailing last 20 lines for [luca-web] process (change the value with --lines option)
+/root/.pm2/logs/luca-web-out.log last 20 lines:
+/root/.pm2/logs/luca-web-error.log last 20 lines:
+0|luca-web |     at Module._load (node:internal/modules/cjs/loader:1091:12)
+0|luca-web |     at cjsLoader (node:internal/modules/esm/translators:298:15)
+0|luca-web |     at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:240:7)
+0|luca-web |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+0|luca-web |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+0|luca-web |   code: 'ERR_INVALID_ARG_TYPE'
+0|luca-web | }
+0|luca-web | TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string or an instance of URL. Received undefined
+0|luca-web |     at fileURLToPath (node:internal/url:1487:11)
+0|luca-web |     at Object.<anonymous> (/opt/luca-bot/dist/index.cjs:64:112769)
+0|luca-web |     at Module._compile (node:internal/modules/cjs/loader:1521:14)
+0|luca-web |     at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+0|luca-web |     at Module.load (node:internal/modules/cjs/loader:1266:32)
+0|luca-web |     at Module._load (node:internal/modules/cjs/loader:1091:12)
+0|luca-web |     at cjsLoader (node:internal/modules/esm/translators:298:15)
+0|luca-web |     at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:240:7)
+0|luca-web |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+0|luca-web |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+0|luca-web |   code: 'ERR_INVALID_ARG_TYPE'
+0|luca-web | }
+
+0|luca-web  | TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string or an instance of URL. Received undefined
+0|luca-web  |     at fileURLToPath (node:internal/url:1487:11)
+0|luca-web  |     at Object.<anonymous> (/opt/luca-bot/dist/index.cjs:64:112769)
+0|luca-web  |     at Module._compile (node:internal/modules/cjs/loader:1521:14)
+0|luca-web  |     at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+0|luca-web  |     at Module.load (node:internal/modules/cjs/loader:1266:32)
+0|luca-web  |     at Module._load (node:internal/modules/cjs/loader:1091:12)
+0|luca-web  |     at cjsLoader (node:internal/modules/esm/translators:298:15)
+0|luca-web  |     at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:240:7)
+0|luca-web  |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+0|luca-web  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+0|luca-web  |   code: 'ERR_INVALID_ARG_TYPE'
+0|luca-web  | }
+0|luca-web  | TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string or an instance of URL. Received undefined
+0|luca-web  |     at fileURLToPath (node:internal/url:1487:11)
+0|luca-web  |     at Object.<anonymous> (/opt/luca-bot/dist/index.cjs:64:112769)
+0|luca-web  |     at Module._compile (node:internal/modules/cjs/loader:1521:14)
+0|luca-web  |     at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+0|luca-web  |     at Module.load (node:internal/modules/cjs/loader:1266:32)
+0|luca-web  |     at Module._load (node:internal/modules/cjs/loader:1091:12)
+0|luca-web  |     at cjsLoader (node:internal/modules/esm/translators:298:15)
+0|luca-web  |     at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:240:7)
+0|luca-web  |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+0|luca-web  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+0|luca-web  |   code: 'ERR_INVALID_ARG_TYPE'
+0|luca-web  | }
+0|luca-web  | TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string or an instance of URL. Received undefined
+0|luca-web  |     at fileURLToPath (node:internal/url:1487:11)
+0|luca-web  |     at Object.<anonymous> (/opt/luca-bot/dist/index.cjs:64:112769)
+0|luca-web  |     at Module._compile (node:internal/modules/cjs/loader:1521:14)
+0|luca-web  |     at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+0|luca-web  |     at Module.load (node:internal/modules/cjs/loader:1266:32)
+0|luca-web  |     at Module._load (node:internal/modules/cjs/loader:1091:12)
+0|luca-web  |     at cjsLoader (node:internal/modules/esm/translators:298:15)
+0|luca-web  |     at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:240:7)
+0|luca-web  |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+0|luca-web  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+0|luca-web  |   code: 'ERR_INVALID_ARG_TYPE'
+0|luca-web  | }
+^C

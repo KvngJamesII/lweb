@@ -2,12 +2,10 @@ import makeWASocket, { useMultiFileAuthState, DisconnectReason, fetchLatestBaile
 import pino from 'pino';
 import path from 'path';
 import fs from 'fs';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = path.resolve();
 
-const USERS_DIR = path.join(__dirname, '..', 'users');
+const USERS_DIR = path.join(__dirname, 'users');
 const activeSessions = new Map<string, any>();
 const logger = pino({ level: 'silent' });
 
