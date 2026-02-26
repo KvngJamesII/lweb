@@ -1,0 +1,45 @@
+│ 1  │ luca-bots          │ fork     │ 0    │ online    │ 0%       │ 54.4mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+
+added 5 packages in 2s
+
+2 packages are looking for funding
+  run `npm fund` for details
+[PM2] Starting /usr/bin/bash in fork_mode (1 instance)
+[PM2] Done.
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 1  │ luca-bots          │ fork     │ 0    │ online    │ 0%       │ 54.2mb   │
+│ 2  │ luca-web           │ fork     │ 0    │ online    │ 0%       │ 12.9mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /root/.pm2/dump.pm2
+[TAILING] Tailing last 10 lines for [luca-web] process (change the value with --lines option)
+/root/.pm2/logs/luca-web-out.log last 10 lines:
+2|luca-web | 11:05:05 AM [express] GET /api/auth/me 304 in 14ms :: {"id":2,"email":"isr921641@gmail.com","role":"user","maintenanceMode":false}
+2|luca-web | 11:05:07 AM [express] GET /api/bot/status 304 in 8ms :: {"status":"no_bot","phoneNumber":null}
+2|luca-web | 11:05:07 AM [express] GET /api/auth/me 304 in 9ms :: {"id":2,"email":"isr921641@gmail.com","role":"user","maintenanceMode":false}
+2|luca-web | [API] Received pairing request for 2347086589699 (user: 2)
+2|luca-web | [PAIRING] Starting pairing for 2347086589699
+2|luca-web | [PAIRING] Attempt 1/3 for 2347086589699
+2|luca-web | [PAIRING] WhatsApp version: 2.3000.1033846690
+2|luca-web | [PAIRING] Attempt 2/3 for 2347086589699
+2|luca-web | [PAIRING] Attempt 3/3 for 2347086589699
+2|luca-web | 11:05:21 AM [express] POST /api/pairing/request 500 in 6604ms :: {"message":"Failed to generate pairing code."}
+
+/root/.pm2/logs/luca-web-error.log last 10 lines:
+2|luca-web | [PAIRING] Fatal: (0 , Nr.default) is not a function
+2|luca-web | [PAIRING] Fatal: (0 , Nr.default) is not a function
+2|luca-web | [PAIRING] Fatal: (0 , Nr.default) is not a function
+2|luca-web | [API] Pairing error for 2347086589699: (0 , Nr.default) is not a function
+2|luca-web | [PROCESS] Received SIGINT
+2|luca-web | [PAIRING] Fatal: aj is not a function
+2|luca-web | [PAIRING] Fatal: aj is not a function
+2|luca-web | [PAIRING] Fatal: aj is not a function
+2|luca-web | [API] Pairing error for 2347086589699: aj is not a function
+2|luca-web | [PROCESS] Received SIGINT
+
+2|luca-web  | [PAIRING] Baileys module pre-loaded
+2|luca-web  | [PROCESS] Unhandled rejection (kept alive): __dirname is not defined
+2|luca-web  | [PROCESS] beforeExit with code: 0
