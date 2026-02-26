@@ -1,3 +1,5 @@
+import makeWASocket, { useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } from '@whiskeysockets/baileys';
+import pino from 'pino';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -7,6 +9,9 @@ const __dirname = path.dirname(__filename);
 
 const USERS_DIR = path.join(__dirname, '..', 'users');
 const activeSessions = new Map<string, any>();
+const logger = pino({ level: 'silent' });
+
+console.log('[PAIRING] Baileys module pre-loaded');
 
 export class PairingHandler {
 
@@ -26,7 +31,6 @@ export class PairingHandler {
     const authDir = path.join(userDir, 'auth_info');
     if (fs.existsSync(authDir)) {
       fs.rmSync(authDir, { recursive: true, force: true });
-      console.log(`[PAIRING] Cleared stale auth data for ${phone}`);
     }
   }
 
@@ -40,27 +44,20 @@ export class PairingHandler {
     this.clearAuthData(phone);
 
     let attempts = 0;
-    const maxAttempts = 5;
+    const maxAttempts = 3;
     let codeGenerated = false;
     let connectionSuccessful = false;
-
-    const baileys = await import('@whiskeysockets/baileys');
-    const makeWASocket = baileys.default;
-    const { useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = baileys;
-    const pino = (await import('pino')).default;
 
     let waVersion: [number, number, number] | undefined;
     try {
       const { version } = await fetchLatestBaileysVersion();
       waVersion = version;
-      console.log(`[PAIRING] Using WhatsApp version: ${version.join('.')}`);
-    } catch (e) {
-      console.log(`[PAIRING] Could not fetch latest version, using default`);
-    }
+      console.log(`[PAIRING] WhatsApp version: ${version.join('.')}`);
+    } catch {}
 
     const startConnection = async () => {
       attempts++;
-      console.log(`[PAIRING] Connection attempt ${attempts}/${maxAttempts} for ${phone}`);
+      console.log(`[PAIRING] Attempt ${attempts}/${maxAttempts} for ${phone}`);
 
       try {
         const { userDir, authDir } = this.createUserDirectory(phone);
@@ -68,7 +65,7 @@ export class PairingHandler {
 
         const socketConfig: any = {
           auth: state,
-          logger: pino({ level: 'silent' }),
+          logger,
           browser: ['Ubuntu', 'Chrome', '20.0.04'],
           printQRInTerminal: false,
           connectTimeoutMs: 60000,
@@ -95,19 +92,18 @@ export class PairingHandler {
             const { connection, lastDisconnect, qr } = update;
             const statusCode = lastDisconnect?.error?.output?.statusCode;
 
-            console.log(`[PAIRING] Connection: ${connection}, QR: ${!!qr}, Status: ${statusCode}, CodeGen: ${codeGenerated}, Attempt: ${attempts}/${maxAttempts}`);
+            console.log(`[PAIRING] conn=${connection} qr=${!!qr} status=${statusCode} codeGen=${codeGenerated}`);
 
             if (qr && !codeGenerated) {
               try {
                 await new Promise(resolve => setTimeout(resolve, 3000));
                 const code = await sock.requestPairingCode(phone);
-                console.log(`[PAIRING] Pairing code generated: ${code}`);
+                console.log(`[PAIRING] Code: ${code}`);
                 codeGenerated = true;
-
-                activeSessions.set(phone, { sock, startTime: Date.now() });
+                activeSessions.set(phone, { sock });
                 onCodeGenerated(code);
               } catch (err: any) {
-                console.error(`[PAIRING] Error requesting code:`, err.message);
+                console.error(`[PAIRING] Code error:`, err.message);
                 try { sock.end(undefined); } catch {}
                 activeSessions.delete(phone);
                 onError(err);
@@ -115,17 +111,13 @@ export class PairingHandler {
             }
 
             if (connection === 'open') {
-              console.log(`[PAIRING] CONNECTION SUCCESSFUL for ${phone}!`);
+              console.log(`[PAIRING] CONNECTED for ${phone}`);
               connectionSuccessful = true;
 
               try {
                 const botDataPath = path.join(userDir, 'bot_data.json');
                 fs.writeFileSync(botDataPath, JSON.stringify({
                   botOwner: phone,
-                  customWelcomeMessages: {},
-                  stickerCommands: {},
-                  adminSettings: {},
-                  userWarns: {},
                   lastSaved: new Date().toISOString()
                 }, null, 2));
               } catch {}
@@ -139,8 +131,6 @@ export class PairingHandler {
             }
 
             if (connection === 'close') {
-              console.log(`[PAIRING] Connection closed. Status: ${statusCode}`);
-
               const shouldReconnect =
                 statusCode !== DisconnectReason.loggedOut &&
                 statusCode !== 401 &&
@@ -154,14 +144,14 @@ export class PairingHandler {
               }
             }
           } catch (err: any) {
-            console.error(`[PAIRING] Error in connection handler:`, err.message);
+            console.error(`[PAIRING] Handler error:`, err.message);
           }
         });
 
         sock.ev.on('messages.upsert', () => {});
 
       } catch (error: any) {
-        console.error(`[PAIRING] Fatal error:`, error.message);
+        console.error(`[PAIRING] Fatal:`, error.message);
         if (attempts < maxAttempts && !connectionSuccessful) {
           setTimeout(() => startConnection().catch(() => {}), 3000);
         } else {
@@ -170,11 +160,8 @@ export class PairingHandler {
       }
     };
 
-    console.log(`[PAIRING] Starting pairing process for ${phone}`);
-    await startConnection().catch((err) => {
-      console.error(`[PAIRING] startConnection error:`, err.message);
-      onError(err);
-    });
+    console.log(`[PAIRING] Starting pairing for ${phone}`);
+    await startConnection().catch((err) => onError(err));
 
     setTimeout(() => {
       if (!connectionSuccessful) {
@@ -184,15 +171,6 @@ export class PairingHandler {
         if (codeGenerated) onError(new Error('Pairing timeout.'));
       }
     }, 300000);
-  }
-
-  static checkConnection(phone: string): boolean {
-    const credsPath = path.join(USERS_DIR, `user_${phone}`, 'auth_info', 'creds.json');
-    if (!fs.existsSync(credsPath)) return false;
-    try {
-      const d = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
-      return !!(d.me && d.me.id);
-    } catch { return false; }
   }
 
   static deleteUserData(phone: string): boolean {
