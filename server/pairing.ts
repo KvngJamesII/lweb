@@ -2,15 +2,10 @@ import * as baileys from '@whiskeysockets/baileys';
 import pino from 'pino';
 import path from 'path';
 import fs from 'fs';
-import { fileURLToPath } from 'url';
-
 const makeWASocket = baileys.default || baileys.makeWASocket || (baileys as any);
 const { useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = baileys;
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const USERS_DIR = path.join(__dirname, '..', 'users');
+const USERS_DIR = path.join(process.cwd(), 'users');
 const activeSessions = new Map<string, any>();
 const logger = pino({ level: 'silent' });
 
