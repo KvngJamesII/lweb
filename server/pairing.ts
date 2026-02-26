@@ -1,5 +1,4 @@
-import makeWASocket, { useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } from '@whiskeysockets/baileys';
-import pino from 'pino';
+import { fork, ChildProcess } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -8,28 +7,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const USERS_DIR = path.join(__dirname, '..', 'users');
-const activeSessions = new Map();
+const activeWorkers = new Map<string, ChildProcess>();
 
 export class PairingHandler {
-
-  static createUserDirectory(phone: string) {
-    const userDir = path.join(USERS_DIR, `user_${phone}`);
-    const authDir = path.join(userDir, 'auth_info');
-
-    if (!fs.existsSync(USERS_DIR)) {
-      fs.mkdirSync(USERS_DIR, { recursive: true });
-    }
-
-    if (!fs.existsSync(userDir)) {
-      fs.mkdirSync(userDir, { recursive: true });
-    }
-
-    if (!fs.existsSync(authDir)) {
-      fs.mkdirSync(authDir, { recursive: true });
-    }
-
-    return { userDir, authDir };
-  }
 
   static clearAuthData(phone: string) {
     const userDir = path.join(USERS_DIR, `user_${phone}`);
@@ -46,237 +26,80 @@ export class PairingHandler {
     onConnected: () => void,
     onError: (error: Error) => void
   ) {
-    let attempts = 0;
-    const maxAttempts = 5;
-    let codeGenerated = false;
-    let connectionSuccessful = false;
-
+    this.cancelPairing(phone);
     this.clearAuthData(phone);
 
-    let waVersion: [number, number, number] | undefined;
-    try {
-      const { version } = await fetchLatestBaileysVersion();
-      waVersion = version;
-      console.log(`[PAIRING] Using WhatsApp version: ${version.join('.')}`);
-    } catch (e) {
-      console.log(`[PAIRING] Could not fetch latest version, using Baileys default`);
-    }
-
-    const startConnection = async () => {
-      attempts++;
-      console.log(`[PAIRING] Connection attempt ${attempts}/${maxAttempts} for ${phone}`);
-
-      try {
-        const { userDir, authDir } = this.createUserDirectory(phone);
-
-        console.log(`[PAIRING] Loading auth state from: ${authDir}`);
-        const { state, saveCreds } = await useMultiFileAuthState(authDir);
-
-        console.log(`[PAIRING] Creating WhatsApp socket...`);
-        const socketConfig: any = {
-          auth: state,
-          logger: pino({ level: 'silent' }),
-          browser: ['Ubuntu', 'Chrome', '20.0.04'],
-          printQRInTerminal: false,
-          connectTimeoutMs: 60000,
-          defaultQueryTimeoutMs: 60000,
-          keepAliveIntervalMs: 10000,
-          emitOwnEvents: false,
-          markOnlineOnConnect: false,
-          syncFullHistory: false,
-          shouldIgnoreJid: () => false,
-          retryRequestDelayMs: 250,
-          maxMsgRetryCount: 5
-        };
-
-        if (waVersion) {
-          socketConfig.version = waVersion;
-        }
-
-        const sock = makeWASocket(socketConfig);
-
-        console.log(`[PAIRING] Socket created, setting up event listeners...`);
-
-        sock.ev.on('creds.update', () => {
-          console.log(`[PAIRING] Credentials updated for ${phone}`);
-          saveCreds();
-        });
-
-        sock.ev.on('connection.update', async (update) => {
-          const { connection, lastDisconnect, qr, isNewLogin } = update;
-          const statusCode = lastDisconnect?.error?.output?.statusCode;
-
-          console.log(`[PAIRING] Connection: ${connection}, QR: ${!!qr}, Status: ${statusCode}, CodeGen: ${codeGenerated}, Attempt: ${attempts}/${maxAttempts}`);
-
-          if (qr && !codeGenerated) {
-            try {
-              console.log(`[PAIRING] QR received, waiting 3s before requesting pairing code...`);
-              await new Promise(resolve => setTimeout(resolve, 3000));
-
-              const code = await sock.requestPairingCode(phone);
-              console.log(`[PAIRING] Pairing code generated: ${code}`);
-              codeGenerated = true;
-
-              activeSessions.set(phone, {
-                sock,
-                startTime: Date.now(),
-                codeGenerated: true,
-                connected: false
-              });
-
-              onCodeGenerated(code);
-
-            } catch (err: any) {
-              console.error(`[PAIRING] Error requesting code:`, err.message);
-              sock.end(undefined);
-              activeSessions.delete(phone);
-              onError(err);
-            }
-          }
-
-          if (connection === 'connecting') {
-            console.log(`[PAIRING] Connecting to WhatsApp servers...`);
-          }
-
-          if (connection === 'open') {
-            console.log(`[PAIRING] CONNECTION SUCCESSFUL for ${phone}!`);
-            connectionSuccessful = true;
-
-            const session = activeSessions.get(phone);
-            if (session) {
-              session.connected = true;
-            }
-
-            const botDataPath = path.join(userDir, 'bot_data.json');
-            const botData = {
-              botOwner: phone,
-              customWelcomeMessages: {},
-              stickerCommands: {},
-              adminSettings: {},
-              userWarns: {},
-              lastSaved: new Date().toISOString()
-            };
-
-            fs.writeFileSync(botDataPath, JSON.stringify(botData, null, 2));
-            console.log(`[PAIRING] bot_data.json created`);
-
-            onConnected();
-
-            setTimeout(() => {
-              console.log(`[PAIRING] Closing pairing socket...`);
-              sock.end(undefined);
-              activeSessions.delete(phone);
-            }, 3000);
-          }
-
-          if (connection === 'close') {
-            console.log(`[PAIRING] Connection closed. Status: ${statusCode}, Error: ${lastDisconnect?.error?.message || 'None'}`);
-
-            const shouldReconnect =
-              statusCode !== DisconnectReason.loggedOut &&
-              statusCode !== 401 &&
-              !connectionSuccessful &&
-              attempts < maxAttempts;
-
-            if (shouldReconnect && codeGenerated) {
-              console.log(`[PAIRING] Reconnecting in 2 seconds...`);
-              setTimeout(() => {
-                startConnection();
-              }, 2000);
-            } else if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
-              console.log(`[PAIRING] Connection rejected/logged out`);
-              activeSessions.delete(phone);
-              onError(new Error('Connection rejected. Please try again with a fresh pairing code.'));
-            } else if (attempts >= maxAttempts) {
-              console.log(`[PAIRING] Max reconnection attempts reached`);
-              activeSessions.delete(phone);
-              onError(new Error('Max reconnection attempts reached. Please try again.'));
-            } else if (!codeGenerated) {
-              console.log(`[PAIRING] Connection closed before code generation`);
-              activeSessions.delete(phone);
-              onError(new Error('Connection failed before code generation.'));
-            }
-          }
-        });
-
-        sock.ev.on('messages.upsert', () => {});
-
-        return sock;
-
-      } catch (error: any) {
-        console.error(`[PAIRING] Fatal error in startConnection:`, error.message);
-
-        if (attempts < maxAttempts && !connectionSuccessful) {
-          console.log(`[PAIRING] Retrying in 3 seconds...`);
-          setTimeout(() => {
-            startConnection();
-          }, 3000);
-        } else {
-          onError(error);
-        }
-      }
-    };
-
     console.log(`[PAIRING] ========================================`);
-    console.log(`[PAIRING] Starting pairing process for ${phone}`);
+    console.log(`[PAIRING] Starting pairing worker for ${phone}`);
     console.log(`[PAIRING] ========================================`);
-    await startConnection();
 
-    setTimeout(() => {
-      if (!connectionSuccessful) {
-        console.log(`[PAIRING] Pairing timeout (5 minutes) for ${phone}`);
-        const session = activeSessions.get(phone);
-        if (session && session.sock) {
-          session.sock.end(undefined);
-        }
-        activeSessions.delete(phone);
+    const workerPath = path.join(__dirname, 'pairing-worker.js');
+    const worker = fork(workerPath, [], {
+      stdio: ['pipe', 'inherit', 'inherit', 'ipc']
+    });
 
-        if (!connectionSuccessful && codeGenerated) {
-          onError(new Error('Pairing timeout. Please try again.'));
-        }
+    activeWorkers.set(phone, worker);
+
+    worker.on('message', (msg: any) => {
+      if (msg.type === 'code') {
+        console.log(`[PAIRING] Code received from worker: ${msg.code}`);
+        onCodeGenerated(msg.code);
+      } else if (msg.type === 'connected') {
+        console.log(`[PAIRING] Connection successful from worker`);
+        onConnected();
+      } else if (msg.type === 'error') {
+        console.error(`[PAIRING] Error from worker: ${msg.message}`);
+        onError(new Error(msg.message));
       }
-    }, 300000);
+    });
+
+    worker.on('exit', (code) => {
+      console.log(`[PAIRING] Worker exited with code ${code}`);
+      activeWorkers.delete(phone);
+    });
+
+    worker.on('error', (err) => {
+      console.error(`[PAIRING] Worker error: ${err.message}`);
+      activeWorkers.delete(phone);
+      onError(err);
+    });
+
+    worker.send({ type: 'start', phone });
   }
 
   static checkConnection(phone: string): boolean {
     const userDir = path.join(USERS_DIR, `user_${phone}`);
-    const authDir = path.join(userDir, 'auth_info');
-    const credsPath = path.join(authDir, 'creds.json');
+    const credsPath = path.join(userDir, 'auth_info', 'creds.json');
 
-    if (!fs.existsSync(credsPath)) {
-      return false;
-    }
+    if (!fs.existsSync(credsPath)) return false;
 
     try {
       const credsData = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
       return !!(credsData.me && credsData.me.id);
-    } catch (error: any) {
+    } catch {
       return false;
     }
   }
 
   static deleteUserData(phone: string): boolean {
     const userDir = path.join(USERS_DIR, `user_${phone}`);
-
     try {
       if (fs.existsSync(userDir)) {
         fs.rmSync(userDir, { recursive: true, force: true });
-        console.log(`[DELETE] Deleted user data for ${phone}`);
         return true;
       }
       return false;
-    } catch (error: any) {
-      console.error(`[DELETE] Error deleting user data for ${phone}:`, error.message);
+    } catch {
       return false;
     }
   }
 
   static cancelPairing(phone: string): boolean {
-    const session = activeSessions.get(phone);
-    if (session && session.sock) {
-      console.log(`[CANCEL] Cancelling pairing for ${phone}`);
-      session.sock.end(undefined);
-      activeSessions.delete(phone);
+    const worker = activeWorkers.get(phone);
+    if (worker) {
+      console.log(`[PAIRING] Killing worker for ${phone}`);
+      worker.kill();
+      activeWorkers.delete(phone);
       return true;
     }
     return false;
