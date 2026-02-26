@@ -60,11 +60,27 @@ app.use((req, res, next) => {
 });
 
 process.on('uncaughtException', (err) => {
-  console.error('[PROCESS] Uncaught exception (kept alive):', err.message);
+  console.error('[PROCESS] Uncaught exception (kept alive):', err.message, err.stack);
 });
 
 process.on('unhandledRejection', (reason: any) => {
   console.error('[PROCESS] Unhandled rejection (kept alive):', reason?.message || reason);
+});
+
+process.on('SIGTERM', () => {
+  console.error('[PROCESS] Received SIGTERM');
+});
+
+process.on('SIGINT', () => {
+  console.error('[PROCESS] Received SIGINT');
+});
+
+process.on('exit', (code) => {
+  console.error(`[PROCESS] Process exiting with code: ${code}`);
+});
+
+process.on('beforeExit', (code) => {
+  console.error(`[PROCESS] beforeExit with code: ${code}`);
 });
 
 (async () => {
