@@ -1,7 +1,10 @@
-import makeWASocket, { useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } from '@whiskeysockets/baileys';
+import * as baileys from '@whiskeysockets/baileys';
 import pino from 'pino';
 import path from 'path';
 import fs from 'fs';
+
+const makeWASocket = baileys.default || baileys.makeWASocket || (baileys as any);
+const { useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = baileys;
 
 const __dirname = path.resolve();
 
