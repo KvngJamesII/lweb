@@ -59,6 +59,14 @@ app.use((req, res, next) => {
   next();
 });
 
+process.on('uncaughtException', (err) => {
+  console.error('[PROCESS] Uncaught exception (kept alive):', err.message);
+});
+
+process.on('unhandledRejection', (reason: any) => {
+  console.error('[PROCESS] Unhandled rejection (kept alive):', reason?.message || reason);
+});
+
 (async () => {
   await registerRoutes(httpServer, app);
 
