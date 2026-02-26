@@ -1,0 +1,79 @@
+root@ubuntu-s-1vcpu-2gb-70gb-intel-sfo2-01:/opt/luca-bot# cd /opt/luca-bot
+git pull
+pm2 delete luca-web
+source .env && pm2 start /usr/bin/tsx --name luca-web -- /opt/luca-bot/server/index.ts
+pm2 save
+pm2 logs luca-web --lines 10
+remote: Enumerating objects: 14, done.
+remote: Counting objects: 100% (14/14), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 10 (delta 8), reused 10 (delta 8), pack-reused 0 (from 0)
+Unpacking objects: 100% (10/10), 2.41 KiB | 494.00 KiB/s, done.
+From https://github.com/KvngJamesII/lweb
+   45d9e6f..2ff4578  main       -> origin/main
+Updating 45d9e6f..2ff4578
+error: Your local changes to the following files would be overwritten by merge:
+        server/pairing.ts
+Please commit your changes or stash them before you merge.
+Aborting
+[PM2] Applying action deleteProcessId on app [luca-web](ids: [ 3 ])
+[PM2] [luca-web](3) ✓
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 1  │ luca-bots          │ fork     │ 0    │ online    │ 0%       │ 54.6mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+[PM2] Starting /usr/bin/tsx in fork_mode (1 instance)
+[PM2] Done.
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 1  │ luca-bots          │ fork     │ 0    │ online    │ 0%       │ 54.6mb   │
+│ 4  │ luca-web           │ fork     │ 0    │ online    │ 0%       │ 18.1mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /root/.pm2/dump.pm2
+[TAILING] Tailing last 10 lines for [luca-web] process (change the value with --lines option)
+/root/.pm2/logs/luca-web-out.log last 10 lines:
+4|luca-web | [PAIRING] Baileys module pre-loaded
+4|luca-web | [PAIRING] Baileys module pre-loaded
+4|luca-web | [PAIRING] Baileys module pre-loaded
+4|luca-web | [PAIRING] Baileys module pre-loaded
+4|luca-web | [PAIRING] Baileys module pre-loaded
+4|luca-web | [PAIRING] Baileys module pre-loaded
+4|luca-web | [PAIRING] Baileys module pre-loaded
+4|luca-web | [PAIRING] Baileys module pre-loaded
+4|luca-web | [PAIRING] Baileys module pre-loaded
+4|luca-web | [PAIRING] Baileys module pre-loaded
+
+/root/.pm2/logs/luca-web-error.log last 10 lines:
+4|luca-web |         ^
+4|luca-web | 
+4|luca-web | 
+4|luca-web | Error: DATABASE_URL must be set. Did you forget to provision a database?
+4|luca-web |     at <anonymous> (/opt/luca-bot/server/db.ts:8:9)
+4|luca-web |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+4|luca-web |     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+4|luca-web |     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+4|luca-web | 
+4|luca-web | Node.js v20.20.0
+
+4|luca-web  | /opt/luca-bot/server/db.ts:8
+4|luca-web  |   throw new Error(
+4|luca-web  |         ^
+4|luca-web  | Error: DATABASE_URL must be set. Did you forget to provision a database?
+4|luca-web  |     at <anonymous> (/opt/luca-bot/server/db.ts:8:9)
+4|luca-web  |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+4|luca-web  |     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+4|luca-web  |     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+4|luca-web  | Node.js v20.20.0
+4|luca-web  | /opt/luca-bot/server/db.ts:8
+4|luca-web  |   throw new Error(
+4|luca-web  |         ^
+4|luca-web  | Error: DATABASE_URL must be set. Did you forget to provision a database?
+4|luca-web  |     at <anonymous> (/opt/luca-bot/server/db.ts:8:9)
+4|luca-web  |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+4|luca-web  |     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+4|luca-web  |     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+4|luca-web  | Node.js v20.20.0
+^C
