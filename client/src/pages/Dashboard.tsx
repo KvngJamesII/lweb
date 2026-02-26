@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bot, Phone, Copy, CheckCircle2, ArrowRight, Loader2, RefreshCcw,
   Power, Wifi, WifiOff, LogOut, Settings, Shield, Key, Bell,
-  MessageSquare, Plus, Send, X, Megaphone, ChevronDown, ChevronUp,
+  MessageSquare, Plus, Send, X, Megaphone, ExternalLink, User as UserIcon,
 } from "lucide-react";
 import { useCopyToClipboard, useWindowSize } from "react-use";
 import Confetti from "react-confetti";
@@ -23,6 +23,22 @@ async function apiRequest(path: string, options?: RequestInit) {
   const json = await res.json();
   if (!res.ok) throw new Error(json.message || "Request failed");
   return json;
+}
+
+function playNotificationSound() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.3);
+  } catch {}
 }
 
 function AnnouncementBanner() {
@@ -47,7 +63,20 @@ function AnnouncementBanner() {
           className="bg-primary/10 border border-primary/20 rounded-xl px-4 py-3 flex items-start gap-3"
         >
           <Megaphone className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-          <p className="text-sm font-medium flex-1" data-testid={`text-announcement-${a.id}`}>{a.message}</p>
+          <div className="flex-1">
+            <p className="text-sm font-medium" data-testid={`text-announcement-${a.id}`}>{a.message}</p>
+            {a.link && (
+              <a
+                href={a.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-primary font-bold mt-1 hover:underline"
+                data-testid={`link-announcement-${a.id}`}
+              >
+                Learn more <ExternalLink className="w-3 h-3" />
+              </a>
+            )}
+          </div>
           <button
             onClick={() => setDismissed(prev => [...prev, a.id])}
             className="text-muted-foreground hover:text-foreground p-0.5"
@@ -107,7 +136,7 @@ function NotificationBell() {
               initial={{ opacity: 0, y: 5, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 5, scale: 0.95 }}
-              className="absolute right-0 top-full mt-2 w-80 glass-card rounded-xl border border-border/50 shadow-xl z-50 overflow-hidden"
+              className="fixed sm:absolute right-3 sm:right-0 left-3 sm:left-auto top-14 sm:top-full sm:mt-2 sm:w-80 glass-card rounded-xl border border-border/50 shadow-xl z-50 overflow-hidden"
             >
               <div className="p-3 border-b border-border/50 flex items-center justify-between">
                 <span className="text-sm font-bold">Notifications</span>
@@ -154,6 +183,14 @@ function SupportPanel() {
   const [message, setMessage] = useState("");
   const [reply, setReply] = useState("");
   const queryClient = useQueryClient();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevMsgCountRef = useRef<number>(0);
+
+  const badgeQuery = useQuery({
+    queryKey: ["/api/support/badge"],
+    queryFn: () => apiRequest("/api/support/badge"),
+    refetchInterval: 10000,
+  });
 
   const ticketsQuery = useQuery({
     queryKey: ["/api/support/tickets"],
@@ -165,7 +202,7 @@ function SupportPanel() {
     queryKey: ["/api/support/tickets", activeTicket, "messages"],
     queryFn: () => apiRequest(`/api/support/tickets/${activeTicket}/messages`),
     enabled: !!activeTicket,
-    refetchInterval: activeTicket ? 5000 : false,
+    refetchInterval: activeTicket ? 3000 : false,
   });
 
   const createTicket = useMutation({
@@ -173,11 +210,12 @@ function SupportPanel() {
       method: "POST",
       body: JSON.stringify({ subject, message }),
     }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/support/tickets"] });
       setSubject("");
       setMessage("");
       setShowNew(false);
+      setActiveTicket(data.id);
     },
   });
 
@@ -192,8 +230,31 @@ function SupportPanel() {
     },
   });
 
+  const requestAgent = useMutation({
+    mutationFn: () => apiRequest(`/api/support/tickets/${activeTicket}/request-agent`, { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/support/tickets", activeTicket, "messages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/support/tickets"] });
+    },
+  });
+
   const tickets = ticketsQuery.data || [];
   const ticketData = messagesQuery.data;
+  const badgeCount = badgeQuery.data?.count || 0;
+
+  useEffect(() => {
+    if (ticketData?.messages) {
+      const newCount = ticketData.messages.length;
+      if (newCount > prevMsgCountRef.current && prevMsgCountRef.current > 0) {
+        const lastMsg = ticketData.messages[newCount - 1];
+        if (lastMsg?.senderRole === "ai" || lastMsg?.senderRole === "admin") {
+          playNotificationSound();
+        }
+      }
+      prevMsgCountRef.current = newCount;
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+    }
+  }, [ticketData?.messages?.length]);
 
   return (
     <>
@@ -201,10 +262,15 @@ function SupportPanel() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setOpen(!open)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center shadow-xl shadow-primary/25 text-white"
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center shadow-xl shadow-primary/25 text-white"
         data-testid="button-support-chat"
       >
         <MessageSquare className="w-6 h-6" />
+        {badgeCount > 0 && (
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-[10px] font-bold text-white rounded-full flex items-center justify-center animate-pulse" data-testid="text-support-badge">
+            {badgeCount}
+          </span>
+        )}
       </motion.button>
 
       <AnimatePresence>
@@ -213,13 +279,13 @@ function SupportPanel() {
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="fixed bottom-24 right-6 z-50 w-[360px] max-h-[500px] glass-card rounded-2xl border border-border/50 shadow-2xl overflow-hidden flex flex-col"
+            className="fixed inset-3 sm:inset-auto sm:bottom-24 sm:right-6 z-50 sm:w-[360px] sm:max-h-[500px] glass-card rounded-2xl border border-border/50 shadow-2xl overflow-hidden flex flex-col"
           >
             <div className="p-4 border-b border-border/50 bg-primary/5">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-sm">Support</h3>
-                  <p className="text-xs text-muted-foreground">We typically reply within a few hours</p>
+                  <p className="text-xs text-muted-foreground">AI-powered instant help</p>
                 </div>
                 <button onClick={() => { setOpen(false); setActiveTicket(null); setShowNew(false); }} className="p-1 hover:bg-secondary rounded-lg">
                   <X className="w-4 h-4" />
@@ -231,40 +297,58 @@ function SupportPanel() {
               {activeTicket && ticketData ? (
                 <div className="flex flex-col h-full">
                   <button
-                    onClick={() => setActiveTicket(null)}
+                    onClick={() => { setActiveTicket(null); prevMsgCountRef.current = 0; }}
                     className="flex items-center gap-1 text-xs text-primary font-medium p-3 hover:bg-secondary/30"
                     data-testid="button-back-tickets"
                   >
                     <ArrowRight className="w-3 h-3 rotate-180" />
                     Back to tickets
                   </button>
-                  <div className="px-3 pb-1">
-                    <p className="text-xs font-bold">{ticketData.ticket.subject}</p>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                      ticketData.ticket.status === "open" ? "bg-primary/10 text-primary" :
-                      ticketData.ticket.status === "closed" ? "bg-secondary text-muted-foreground" :
-                      "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                    }`}>
-                      {ticketData.ticket.status}
-                    </span>
+                  <div className="px-3 pb-1 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold">{ticketData.ticket.subject}</p>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                        ticketData.ticket.status === "open" ? "bg-primary/10 text-primary" :
+                        ticketData.ticket.status === "closed" ? "bg-secondary text-muted-foreground" :
+                        "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                      }`}>
+                        {ticketData.ticket.status}
+                      </span>
+                    </div>
+                    {ticketData.ticket.aiEnabled && ticketData.ticket.status !== "closed" && (
+                      <button
+                        onClick={() => requestAgent.mutate()}
+                        disabled={requestAgent.isPending}
+                        className="flex items-center gap-1 text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-full hover:bg-primary/20 transition-colors"
+                        data-testid="button-request-agent"
+                      >
+                        <UserIcon className="w-3 h-3" />
+                        Live Agent
+                      </button>
+                    )}
                   </div>
-                  <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                  <div className="flex-1 overflow-y-auto p-3 space-y-2 max-h-[280px]">
                     {(ticketData.messages || []).map((m: any) => (
                       <div
                         key={m.id}
                         className={`max-w-[85%] p-2.5 rounded-xl text-xs ${
-                          m.senderRole === "admin"
-                            ? "bg-primary/10 mr-auto"
-                            : "bg-secondary ml-auto"
+                          m.senderRole === "user"
+                            ? "bg-secondary ml-auto"
+                            : m.senderRole === "system"
+                            ? "bg-amber-100/50 dark:bg-amber-900/20 mx-auto text-center max-w-full border border-amber-200/50 dark:border-amber-800/30"
+                            : "bg-primary/10 mr-auto"
                         }`}
                         data-testid={`message-${m.id}`}
                       >
-                        <p className="font-bold text-[10px] text-muted-foreground mb-0.5">
-                          {m.senderRole === "admin" ? "Support" : "You"}
-                        </p>
+                        {m.senderRole !== "system" && (
+                          <p className="font-bold text-[10px] text-muted-foreground mb-0.5">
+                            {m.senderRole === "ai" ? "LUCA AI" : m.senderRole === "admin" ? "Support Agent" : "You"}
+                          </p>
+                        )}
                         <p>{m.message}</p>
                       </div>
                     ))}
+                    <div ref={messagesEndRef} />
                   </div>
                   {ticketData.ticket.status !== "closed" && (
                     <div className="p-3 border-t border-border/50">
@@ -412,7 +496,24 @@ export default function Dashboard() {
     },
   });
 
+  const adminBadgeQuery = useQuery({
+    queryKey: ["/api/admin/support/badge"],
+    queryFn: () => apiRequest("/api/admin/support/badge"),
+    enabled: isAdmin,
+    refetchInterval: 10000,
+  });
+
+  const prevAdminBadgeRef = useRef(0);
+  useEffect(() => {
+    const count = adminBadgeQuery.data?.count || 0;
+    if (count > prevAdminBadgeRef.current && prevAdminBadgeRef.current >= 0 && isAdmin) {
+      if (prevAdminBadgeRef.current > 0) playNotificationSound();
+    }
+    prevAdminBadgeRef.current = count;
+  }, [adminBadgeQuery.data?.count]);
+
   const botStatus = botStatusQuery.data;
+  const adminBadge = adminBadgeQuery.data?.count || 0;
 
   const handlePairSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -506,9 +607,14 @@ export default function Dashboard() {
           <div className="flex items-center gap-2">
             {isAdmin && (
               <Link href="/admin">
-                <Button variant="ghost" size="sm" className="h-9 px-3" data-testid="link-admin">
+                <Button variant="ghost" size="sm" className="h-9 px-3 relative" data-testid="link-admin">
                   <Shield className="w-4 h-4 mr-1.5" />
                   <span className="hidden sm:inline">Admin</span>
+                  {adminBadge > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-[9px] font-bold text-white rounded-full flex items-center justify-center animate-pulse" data-testid="text-admin-badge">
+                      {adminBadge}
+                    </span>
+                  )}
                 </Button>
               </Link>
             )}

@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { loginSchema, registerSchema } from "@shared/schema";
 import { z } from "zod";
 import { PairingHandler } from "./pairing.js";
+import { getAiSupportResponse } from "./ai-support.js";
 import os from "os";
 import bcrypt from "bcrypt";
 
@@ -442,6 +443,15 @@ export async function registerRoutes(
       const ticket = await storage.createSupportTicket(req.session.userId!, subject);
       await storage.addSupportMessage(ticket.id, req.session.userId!, "user", message);
       res.json(ticket);
+
+      try {
+        const aiReply = await getAiSupportResponse([
+          { role: "user", content: `Subject: ${subject}\n\n${message}` },
+        ]);
+        await storage.addSupportMessage(ticket.id, 0, "ai", aiReply);
+      } catch (e: any) {
+        console.error("[AI-SUPPORT] Initial reply error:", e.message);
+      }
     } catch (err) {
       res.status(500).json({ message: "Failed to create ticket" });
     }
@@ -475,8 +485,70 @@ export async function registerRoutes(
       const role = req.session.userRole || "user";
       const msg = await storage.addSupportMessage(ticketId, req.session.userId!, role, message);
       res.json(msg);
+
+      if (role === "admin" && ticket.aiEnabled) {
+        await storage.toggleTicketAi(ticketId, false);
+      }
+
+      if (role === "user" && ticket.aiEnabled) {
+        const allMessages = await storage.getTicketMessages(ticketId);
+        const history = allMessages.map(m => ({
+          role: m.senderRole === "user" ? "user" : "assistant",
+          content: m.message,
+        }));
+        try {
+          const aiReply = await getAiSupportResponse(history);
+          await storage.addSupportMessage(ticketId, 0, "ai", aiReply);
+        } catch (e: any) {
+          console.error("[AI-SUPPORT] Auto-reply error:", e.message);
+        }
+      }
     } catch (err) {
       res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  app.post("/api/support/tickets/:id/request-agent", requireAuth, async (req, res) => {
+    try {
+      const ticketId = parseInt(req.params.id);
+      const ticket = await storage.getSupportTicket(ticketId);
+      if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+      if (ticket.userId !== req.session.userId!) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      await storage.toggleTicketAi(ticketId, false);
+      await storage.addSupportMessage(ticketId, 0, "system", "You've been added to the queue. A live support agent will reply to you shortly. Please hang tight!");
+      res.json({ message: "Live agent requested" });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to request agent" });
+    }
+  });
+
+  app.post("/api/admin/support/tickets/:id/toggle-ai", requireAdmin, async (req, res) => {
+    try {
+      const { enabled } = req.body;
+      await storage.toggleTicketAi(parseInt(req.params.id), !!enabled);
+      res.json({ message: enabled ? "AI resumed" : "AI paused" });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to toggle AI" });
+    }
+  });
+
+  app.get("/api/support/badge", requireAuth, async (req, res) => {
+    try {
+      const count = await storage.getUnrepliedTicketCount(req.session.userId!);
+      res.json({ count });
+    } catch (err) {
+      res.json({ count: 0 });
+    }
+  });
+
+  app.get("/api/admin/support/badge", requireAdmin, async (_req, res) => {
+    try {
+      const count = await storage.getOpenTicketCountForAdmin();
+      res.json({ count });
+    } catch (err) {
+      res.json({ count: 0 });
     }
   });
 
@@ -519,9 +591,9 @@ export async function registerRoutes(
 
   app.post("/api/admin/announcements", requireAdmin, async (req, res) => {
     try {
-      const { message } = req.body;
+      const { message, link } = req.body;
       if (!message) return res.status(400).json({ message: "Message is required" });
-      const ann = await storage.createAnnouncement(message);
+      const ann = await storage.createAnnouncement(message, link || undefined);
       res.json(ann);
     } catch (err) {
       res.status(500).json({ message: "Failed to create announcement" });

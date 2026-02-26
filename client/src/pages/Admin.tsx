@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bot, Users, Cpu, HardDrive, Clock, Shield, Power, Ban,
   RefreshCcw, Loader2, ArrowLeft, ToggleLeft, ToggleRight,
   Wifi, WifiOff, Activity, Server, Megaphone, MessageSquare,
-  Plus, Trash2, Send, X, ArrowRight,
+  Plus, Trash2, Send, X, ArrowRight, ExternalLink, Pause, Play,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
@@ -17,6 +17,23 @@ async function apiRequest(path: string, options?: RequestInit) {
   const json = await res.json();
   if (!res.ok) throw new Error(json.message || "Request failed");
   return json;
+}
+
+function playNotificationSound() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(660, ctx.currentTime);
+    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
+    osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.2);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.4);
+  } catch {}
 }
 
 function formatBytes(bytes: number) {
@@ -63,6 +80,21 @@ export default function Admin() {
     queryFn: () => apiRequest("/api/admin/maintenance"),
   });
 
+  const badgeQuery = useQuery({
+    queryKey: ["/api/admin/support/badge"],
+    queryFn: () => apiRequest("/api/admin/support/badge"),
+    refetchInterval: 10000,
+  });
+
+  const prevBadgeRef = useRef(0);
+  useEffect(() => {
+    const count = badgeQuery.data?.count || 0;
+    if (count > prevBadgeRef.current && prevBadgeRef.current > 0) {
+      playNotificationSound();
+    }
+    prevBadgeRef.current = count;
+  }, [badgeQuery.data?.count]);
+
   const toggleMaintenance = useMutation({
     mutationFn: (enabled: boolean) =>
       apiRequest("/api/admin/maintenance", { method: "POST", body: JSON.stringify({ enabled }) }),
@@ -98,16 +130,17 @@ export default function Admin() {
   const sys = systemQuery.data;
   const allUsers = usersQuery.data || [];
   const isMaintenanceOn = maintenanceQuery.data?.enabled;
+  const supportBadge = badgeQuery.data?.count || 0;
 
   const memPercent = sys ? Math.round((sys.memory.rss / sys.memory.systemTotal) * 100) : 0;
   const cpuLoad = sys ? Math.min(100, Math.round((sys.cpu.loadAverage[0] / sys.cpu.cores) * 100)) : 0;
 
   const tabs = [
-    { id: "overview" as const, label: "Overview", icon: Activity },
-    { id: "users" as const, label: "Users", icon: Users },
-    { id: "system" as const, label: "System", icon: Server },
-    { id: "support" as const, label: "Support", icon: MessageSquare },
-    { id: "announcements" as const, label: "Announce", icon: Megaphone },
+    { id: "overview" as const, label: "Overview", icon: Activity, badge: 0 },
+    { id: "users" as const, label: "Users", icon: Users, badge: 0 },
+    { id: "system" as const, label: "System", icon: Server, badge: 0 },
+    { id: "support" as const, label: "Support", icon: MessageSquare, badge: supportBadge },
+    { id: "announcements" as const, label: "Announce", icon: Megaphone, badge: 0 },
   ];
 
   return (
@@ -161,7 +194,7 @@ export default function Admin() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+              className={`relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                 tab === t.id
                   ? "bg-background shadow-sm text-foreground"
                   : "text-muted-foreground hover:text-foreground"
@@ -170,6 +203,11 @@ export default function Admin() {
             >
               <t.icon className="w-3.5 h-3.5" />
               {t.label}
+              {t.badge > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-[9px] font-bold text-white rounded-full flex items-center justify-center animate-pulse">
+                  {t.badge}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -385,6 +423,8 @@ function AdminSupportTab() {
   const queryClient = useQueryClient();
   const [activeTicket, setActiveTicket] = useState<number | null>(null);
   const [reply, setReply] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevMsgCountRef = useRef(0);
 
   const ticketsQuery = useQuery({
     queryKey: ["/api/admin/support/tickets"],
@@ -396,7 +436,7 @@ function AdminSupportTab() {
     queryKey: ["/api/support/tickets", activeTicket, "messages"],
     queryFn: () => apiRequest(`/api/support/tickets/${activeTicket}/messages`),
     enabled: !!activeTicket,
-    refetchInterval: activeTicket ? 5000 : false,
+    refetchInterval: activeTicket ? 3000 : false,
   });
 
   const updateStatus = useMutation({
@@ -405,6 +445,15 @@ function AdminSupportTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/support/tickets"] });
       queryClient.invalidateQueries({ queryKey: ["/api/support/tickets", activeTicket, "messages"] });
+    },
+  });
+
+  const toggleAi = useMutation({
+    mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) =>
+      apiRequest(`/api/admin/support/tickets/${id}/toggle-ai`, { method: "POST", body: JSON.stringify({ enabled }) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/support/tickets", activeTicket, "messages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/support/tickets"] });
     },
   });
 
@@ -420,12 +469,27 @@ function AdminSupportTab() {
   const tickets = ticketsQuery.data || [];
   const ticketData = messagesQuery.data;
 
+  useEffect(() => {
+    if (ticketData?.messages) {
+      const newCount = ticketData.messages.length;
+      if (newCount > prevMsgCountRef.current && prevMsgCountRef.current > 0) {
+        const lastMsg = ticketData.messages[newCount - 1];
+        if (lastMsg?.senderRole === "user") {
+          playNotificationSound();
+        }
+      }
+      prevMsgCountRef.current = newCount;
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+    }
+  }, [ticketData?.messages?.length]);
+
   if (activeTicket && ticketData) {
+    const isAiEnabled = ticketData.ticket.aiEnabled;
     return (
       <div className="glass-card rounded-2xl border border-white/5 overflow-hidden">
         <div className="p-4 border-b border-border/50 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={() => setActiveTicket(null)} className="text-xs font-bold text-primary hover:underline flex items-center gap-1" data-testid="button-back-admin-tickets">
+            <button onClick={() => { setActiveTicket(null); prevMsgCountRef.current = 0; }} className="text-xs font-bold text-primary hover:underline flex items-center gap-1" data-testid="button-back-admin-tickets">
               <ArrowRight className="w-3 h-3 rotate-180" />
               Back
             </button>
@@ -440,6 +504,16 @@ function AdminSupportTab() {
             </span>
           </div>
           <div className="flex gap-1.5">
+            <Button
+              size="sm"
+              variant="outline"
+              className={`h-7 text-[10px] rounded-lg ${isAiEnabled ? "" : "border-amber-300 text-amber-600"}`}
+              onClick={() => toggleAi.mutate({ id: activeTicket, enabled: !isAiEnabled })}
+              data-testid="button-toggle-ai"
+            >
+              {isAiEnabled ? <Pause className="w-3 h-3 mr-1" /> : <Play className="w-3 h-3 mr-1" />}
+              AI {isAiEnabled ? "On" : "Off"}
+            </Button>
             {ticketData.ticket.status !== "closed" && (
               <Button size="sm" variant="outline" className="h-7 text-[10px] rounded-lg" onClick={() => updateStatus.mutate({ id: activeTicket, status: "closed" })} data-testid="button-close-ticket">
                 Close
@@ -454,16 +528,33 @@ function AdminSupportTab() {
         </div>
         <div className="p-4 space-y-2 max-h-[400px] overflow-y-auto">
           {(ticketData.messages || []).map((m: any) => (
-            <div key={m.id} className={`max-w-[70%] p-3 rounded-xl text-xs ${m.senderRole === "admin" ? "bg-primary/10 ml-auto" : "bg-secondary/50 mr-auto"}`} data-testid={`admin-message-${m.id}`}>
-              <p className="font-bold text-[10px] text-muted-foreground mb-0.5">{m.senderRole === "admin" ? "You (Admin)" : "User"}</p>
+            <div
+              key={m.id}
+              className={`max-w-[70%] p-3 rounded-xl text-xs ${
+                m.senderRole === "admin"
+                  ? "bg-primary/10 ml-auto"
+                  : m.senderRole === "ai"
+                  ? "bg-violet-100/50 dark:bg-violet-900/20 mr-auto border border-violet-200/50 dark:border-violet-800/30"
+                  : m.senderRole === "system"
+                  ? "bg-amber-100/50 dark:bg-amber-900/20 mx-auto text-center max-w-full border border-amber-200/50 dark:border-amber-800/30"
+                  : "bg-secondary/50 mr-auto"
+              }`}
+              data-testid={`admin-message-${m.id}`}
+            >
+              {m.senderRole !== "system" && (
+                <p className="font-bold text-[10px] text-muted-foreground mb-0.5">
+                  {m.senderRole === "admin" ? "You (Admin)" : m.senderRole === "ai" ? "LUCA AI" : "User"}
+                </p>
+              )}
               <p>{m.message}</p>
             </div>
           ))}
+          <div ref={messagesEndRef} />
         </div>
         {ticketData.ticket.status !== "closed" && (
           <div className="p-4 border-t border-border/50">
             <div className="flex gap-2">
-              <Input value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Reply as admin..." className="text-xs h-9 rounded-lg" data-testid="input-admin-reply" onKeyDown={(e) => e.key === "Enter" && reply.trim() && sendReply.mutate()} />
+              <Input value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Reply as admin (pauses AI for this ticket)..." className="text-xs h-9 rounded-lg" data-testid="input-admin-reply" onKeyDown={(e) => e.key === "Enter" && reply.trim() && sendReply.mutate()} />
               <Button size="sm" className="h-9 px-4" onClick={() => sendReply.mutate()} disabled={!reply.trim() || sendReply.isPending} data-testid="button-admin-send">
                 <Send className="w-3.5 h-3.5" />
               </Button>
@@ -495,6 +586,11 @@ function AdminSupportTab() {
                   }`}>
                     {t.status}
                   </span>
+                  {!t.aiEnabled && (
+                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400">
+                      Agent Requested
+                    </span>
+                  )}
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
                   #{t.id} by {t.user?.email || "Unknown"}
@@ -512,6 +608,7 @@ function AdminSupportTab() {
 function AdminAnnouncementsTab() {
   const queryClient = useQueryClient();
   const [newMessage, setNewMessage] = useState("");
+  const [newLink, setNewLink] = useState("");
 
   const announcementsQuery = useQuery({
     queryKey: ["/api/admin/announcements"],
@@ -519,11 +616,15 @@ function AdminAnnouncementsTab() {
   });
 
   const createAnnouncement = useMutation({
-    mutationFn: () => apiRequest("/api/admin/announcements", { method: "POST", body: JSON.stringify({ message: newMessage }) }),
+    mutationFn: () => apiRequest("/api/admin/announcements", {
+      method: "POST",
+      body: JSON.stringify({ message: newMessage, link: newLink || undefined }),
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/announcements"] });
       queryClient.invalidateQueries({ queryKey: ["/api/announcements"] });
       setNewMessage("");
+      setNewLink("");
     },
   });
 
@@ -541,11 +642,14 @@ function AdminAnnouncementsTab() {
     <div className="space-y-4">
       <div className="glass-card rounded-2xl p-5 border border-white/5">
         <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Create Announcement</h3>
-        <div className="flex gap-2">
-          <Input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Type announcement message..." className="text-xs h-10 rounded-xl flex-1" data-testid="input-announcement" onKeyDown={(e) => e.key === "Enter" && newMessage.trim() && createAnnouncement.mutate()} />
-          <Button size="sm" className="h-10 px-4 rounded-xl" onClick={() => createAnnouncement.mutate()} disabled={!newMessage.trim() || createAnnouncement.isPending} data-testid="button-create-announcement">
-            {createAnnouncement.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Plus className="w-4 h-4 mr-1" />Post</>}
-          </Button>
+        <div className="space-y-2">
+          <Input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Type announcement message..." className="text-xs h-10 rounded-xl" data-testid="input-announcement" />
+          <div className="flex gap-2">
+            <Input value={newLink} onChange={(e) => setNewLink(e.target.value)} placeholder="Link URL (optional)" className="text-xs h-10 rounded-xl flex-1" data-testid="input-announcement-link" />
+            <Button size="sm" className="h-10 px-4 rounded-xl" onClick={() => createAnnouncement.mutate()} disabled={!newMessage.trim() || createAnnouncement.isPending} data-testid="button-create-announcement">
+              {createAnnouncement.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Plus className="w-4 h-4 mr-1" />Post</>}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -563,6 +667,11 @@ function AdminAnnouncementsTab() {
                   <Megaphone className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="text-xs font-medium">{a.message}</p>
+                    {a.link && (
+                      <a href={a.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] text-primary font-bold mt-0.5 hover:underline">
+                        <ExternalLink className="w-3 h-3" /> {a.link}
+                      </a>
+                    )}
                     <p className="text-[10px] text-muted-foreground mt-1">
                       {a.active ? "Active" : "Inactive"} | {new Date(a.createdAt).toLocaleString()}
                     </p>

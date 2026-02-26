@@ -10,8 +10,10 @@ A full-stack web platform for pairing WhatsApp bots using the Baileys library. S
 - **User Dashboard**: Bot status, connect/disconnect, re-pair, change password
 - **Admin Panel**: User management (ban/unban), bot restart/stop/restart-all, system stats (CPU/memory/uptime), maintenance mode toggle
 - **Notifications**: In-app notification system with bell icon, unread count, mark read
-- **Support Tickets**: User-facing support chat widget with ticket creation and real-time messaging; admin support ticket management with reply capability
-- **Announcements**: Admin can create/delete announcements; users see dismissible banners on dashboard
+- **AI Support Agent**: OpenAI-powered support assistant (LUCA AI) trained on all bot commands and pairing instructions; auto-replies to user messages when AI is enabled on a ticket; "Talk to live agent" button queues user for human support
+- **Support Tickets**: User-facing support chat widget with ticket creation and real-time messaging; admin support ticket management with reply and AI toggle; admin can pause/resume AI per ticket; admin reply auto-pauses AI
+- **Announcements**: Admin can create/delete announcements with optional links; users see dismissible banners with "Learn more" link on dashboard
+- **Notification Badges & Sounds**: Admin icon shows red badge for open tickets with notification sound; user support icon shows badge for unread replies with sound
 - **Bot Auto-Start**: After pairing, bot.cjs is launched as a child process
 - **Glassmorphism Design**: Split-screen auth pages, modern UI with Framer Motion animations and confetti celebrations
 
@@ -37,9 +39,9 @@ A full-stack web platform for pairing WhatsApp bots using the Baileys library. S
 - **ip_tracking**: id, ipAddress, userId, action, createdAt
 - **pairing_requests**: id, phoneNumber, status, pairingCode, userId, createdAt
 - **notifications**: id, userId, title, message, type, read, createdAt
-- **support_tickets**: id, userId, subject, status, createdAt
-- **support_messages**: id, ticketId, senderId, senderRole, message, createdAt
-- **announcements**: id, message, active, createdAt
+- **support_tickets**: id, userId, subject, status, aiEnabled (boolean), createdAt
+- **support_messages**: id, ticketId, senderId, senderRole (user/admin/ai/system), message, createdAt
+- **announcements**: id, message, link (optional), active, createdAt
 
 ## Key Files
 
@@ -48,6 +50,7 @@ A full-stack web platform for pairing WhatsApp bots using the Baileys library. S
 - `server/routes.ts` - All API endpoints (auth, pairing, bot, admin, notifications, support, announcements)
 - `server/pairing.ts` - WhatsApp Baileys pairing logic + bot process management
 - `server/storage.ts` - Database operations (IStorage interface)
+- `server/ai-support.ts` - OpenAI-powered AI support agent with bot command knowledge
 - `server/db.ts` - Database connection pool
 - `shared/schema.ts` - Drizzle schema, Zod validation schemas, types
 
@@ -88,9 +91,11 @@ A full-stack web platform for pairing WhatsApp bots using the Baileys library. S
 
 ### Support
 - GET `/api/support/tickets` — User's support tickets
-- POST `/api/support/tickets` — Create ticket (subject, message)
+- POST `/api/support/tickets` — Create ticket (subject, message); AI auto-replies
 - GET `/api/support/tickets/:id/messages` — Get ticket messages
-- POST `/api/support/tickets/:id/messages` — Send message on ticket
+- POST `/api/support/tickets/:id/messages` — Send message on ticket; AI auto-replies if enabled
+- POST `/api/support/tickets/:id/request-agent` — Request live agent (pauses AI)
+- GET `/api/support/badge` — Unread reply count for current user
 
 ### Announcements
 - GET `/api/announcements` — Active announcements (public)
@@ -105,8 +110,10 @@ A full-stack web platform for pairing WhatsApp bots using the Baileys library. S
 - GET/POST `/api/admin/maintenance` — Get/toggle maintenance mode
 - GET `/api/admin/support/tickets` — All support tickets with user info
 - POST `/api/admin/support/tickets/:id/status` — Update ticket status
-- GET/POST `/api/admin/announcements` — Get all / create announcement
+- GET/POST `/api/admin/announcements` — Get all / create announcement (with optional link)
 - DELETE `/api/admin/announcements/:id` — Delete announcement
+- POST `/api/admin/support/tickets/:id/toggle-ai` — Toggle AI on/off for a ticket
+- GET `/api/admin/support/badge` — Open ticket count for admin badge
 
 ## Environment Variables
 

@@ -48,10 +48,14 @@ export interface IStorage {
   addSupportMessage(ticketId: number, senderId: number, senderRole: string, message: string): Promise<SupportMessage>;
   getTicketMessages(ticketId: number): Promise<SupportMessage[]>;
 
-  createAnnouncement(message: string): Promise<Announcement>;
+  createAnnouncement(message: string, link?: string): Promise<Announcement>;
   getActiveAnnouncements(): Promise<Announcement[]>;
   deleteAnnouncement(id: number): Promise<void>;
   getAllAnnouncements(): Promise<Announcement[]>;
+
+  toggleTicketAi(ticketId: number, enabled: boolean): Promise<void>;
+  getOpenTicketCountForAdmin(): Promise<number>;
+  getUnrepliedTicketCount(userId: number): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -243,9 +247,9 @@ export class DatabaseStorage implements IStorage {
       .orderBy(supportMessages.createdAt);
   }
 
-  async createAnnouncement(message: string): Promise<Announcement> {
+  async createAnnouncement(message: string, link?: string): Promise<Announcement> {
     const [ann] = await db.insert(announcements)
-      .values({ message })
+      .values({ message, link: link || null })
       .returning();
     return ann;
   }
@@ -262,6 +266,34 @@ export class DatabaseStorage implements IStorage {
 
   async getAllAnnouncements(): Promise<Announcement[]> {
     return db.select().from(announcements).orderBy(desc(announcements.createdAt));
+  }
+
+  async toggleTicketAi(ticketId: number, enabled: boolean): Promise<void> {
+    await db.update(supportTickets)
+      .set({ aiEnabled: enabled })
+      .where(eq(supportTickets.id, ticketId));
+  }
+
+  async getOpenTicketCountForAdmin(): Promise<number> {
+    const result = await db.select({ count: count() }).from(supportTickets)
+      .where(eq(supportTickets.status, "open"));
+    return result[0]?.count || 0;
+  }
+
+  async getUnrepliedTicketCount(userId: number): Promise<number> {
+    const tickets = await db.select().from(supportTickets)
+      .where(eq(supportTickets.userId, userId));
+    let unreplied = 0;
+    for (const ticket of tickets) {
+      const msgs = await db.select().from(supportMessages)
+        .where(eq(supportMessages.ticketId, ticket.id))
+        .orderBy(desc(supportMessages.createdAt))
+        .limit(1);
+      if (msgs.length > 0 && (msgs[0].senderRole === "admin" || msgs[0].senderRole === "ai")) {
+        unreplied++;
+      }
+    }
+    return unreplied;
   }
 }
 

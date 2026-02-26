@@ -58,6 +58,7 @@ export const supportTickets = pgTable("support_tickets", {
   userId: integer("user_id").notNull(),
   subject: text("subject").notNull(),
   status: text("status").notNull().default("open"),
+  aiEnabled: boolean("ai_enabled").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -73,6 +74,7 @@ export const supportMessages = pgTable("support_messages", {
 export const announcements = pgTable("announcements", {
   id: serial("id").primaryKey(),
   message: text("message").notNull(),
+  link: text("link"),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
