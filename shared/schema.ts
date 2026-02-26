@@ -43,6 +43,40 @@ export const pairingRequests = pgTable("pairing_requests", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  type: text("type").notNull().default("info"),
+  read: boolean("read").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const supportTickets = pgTable("support_tickets", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  subject: text("subject").notNull(),
+  status: text("status").notNull().default("open"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const supportMessages = pgTable("support_messages", {
+  id: serial("id").primaryKey(),
+  ticketId: integer("ticket_id").notNull(),
+  senderId: integer("sender_id").notNull(),
+  senderRole: text("sender_role").notNull().default("user"),
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const announcements = pgTable("announcements", {
+  id: serial("id").primaryKey(),
+  message: text("message").notNull(),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true, createdAt: true, role: true, banned: true, registrationIp: true,
 });
@@ -53,6 +87,22 @@ export const insertUserBotSchema = createInsertSchema(userBots).omit({
 
 export const insertPairingRequestSchema = createInsertSchema(pairingRequests).omit({
   id: true, createdAt: true, status: true, pairingCode: true, userId: true,
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true, createdAt: true, read: true,
+});
+
+export const insertSupportTicketSchema = createInsertSchema(supportTickets).omit({
+  id: true, createdAt: true, status: true,
+});
+
+export const insertSupportMessageSchema = createInsertSchema(supportMessages).omit({
+  id: true, createdAt: true,
+});
+
+export const insertAnnouncementSchema = createInsertSchema(announcements).omit({
+  id: true, createdAt: true,
 });
 
 export const loginSchema = z.object({
@@ -76,3 +126,7 @@ export type UserBot = typeof userBots.$inferSelect;
 export type InsertPairingRequest = z.infer<typeof insertPairingRequestSchema>;
 export type PairingRequest = typeof pairingRequests.$inferSelect;
 export type SiteSetting = typeof siteSettings.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;
+export type SupportTicket = typeof supportTickets.$inferSelect;
+export type SupportMessage = typeof supportMessages.$inferSelect;
+export type Announcement = typeof announcements.$inferSelect;

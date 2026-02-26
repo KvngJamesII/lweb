@@ -1,7 +1,9 @@
 import { db } from "./db";
 import {
   users, userBots, siteSettings, ipTracking, pairingRequests,
+  notifications, supportTickets, supportMessages, announcements,
   type User, type UserBot, type PairingRequest, type SiteSetting,
+  type Notification, type SupportTicket, type SupportMessage, type Announcement,
 } from "@shared/schema";
 import { eq, desc, and, count } from "drizzle-orm";
 import bcrypt from "bcrypt";
@@ -31,6 +33,25 @@ export interface IStorage {
   updatePairingRequest(phone: string, updates: Partial<PairingRequest>): Promise<PairingRequest | undefined>;
   getPairingRequestByPhone(phone: string): Promise<PairingRequest | undefined>;
   deletePairingRequestsByPhone(phone: string): Promise<void>;
+
+  createNotification(userId: number, title: string, message: string, type?: string): Promise<Notification>;
+  getUserNotifications(userId: number): Promise<Notification[]>;
+  getUnreadNotificationCount(userId: number): Promise<number>;
+  markNotificationRead(notificationId: number, userId: number): Promise<void>;
+  markAllNotificationsRead(userId: number): Promise<void>;
+
+  createSupportTicket(userId: number, subject: string): Promise<SupportTicket>;
+  getSupportTicket(ticketId: number): Promise<SupportTicket | undefined>;
+  getUserSupportTickets(userId: number): Promise<SupportTicket[]>;
+  getAllSupportTickets(): Promise<SupportTicket[]>;
+  updateTicketStatus(ticketId: number, status: string): Promise<void>;
+  addSupportMessage(ticketId: number, senderId: number, senderRole: string, message: string): Promise<SupportMessage>;
+  getTicketMessages(ticketId: number): Promise<SupportMessage[]>;
+
+  createAnnouncement(message: string): Promise<Announcement>;
+  getActiveAnnouncements(): Promise<Announcement[]>;
+  deleteAnnouncement(id: number): Promise<void>;
+  getAllAnnouncements(): Promise<Announcement[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -144,6 +165,103 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(pairingRequests.id))
       .limit(1);
     return request;
+  }
+
+  async createNotification(userId: number, title: string, message: string, type: string = "info"): Promise<Notification> {
+    const [notif] = await db.insert(notifications)
+      .values({ userId, title, message, type })
+      .returning();
+    return notif;
+  }
+
+  async getUserNotifications(userId: number): Promise<Notification[]> {
+    return db.select().from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt))
+      .limit(50);
+  }
+
+  async getUnreadNotificationCount(userId: number): Promise<number> {
+    const result = await db.select({ count: count() }).from(notifications)
+      .where(and(eq(notifications.userId, userId), eq(notifications.read, false)));
+    return result[0]?.count || 0;
+  }
+
+  async markNotificationRead(notificationId: number, userId: number): Promise<void> {
+    await db.update(notifications)
+      .set({ read: true })
+      .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
+  }
+
+  async markAllNotificationsRead(userId: number): Promise<void> {
+    await db.update(notifications)
+      .set({ read: true })
+      .where(eq(notifications.userId, userId));
+  }
+
+  async createSupportTicket(userId: number, subject: string): Promise<SupportTicket> {
+    const [ticket] = await db.insert(supportTickets)
+      .values({ userId, subject })
+      .returning();
+    return ticket;
+  }
+
+  async getSupportTicket(ticketId: number): Promise<SupportTicket | undefined> {
+    const [ticket] = await db.select().from(supportTickets)
+      .where(eq(supportTickets.id, ticketId))
+      .limit(1);
+    return ticket;
+  }
+
+  async getUserSupportTickets(userId: number): Promise<SupportTicket[]> {
+    return db.select().from(supportTickets)
+      .where(eq(supportTickets.userId, userId))
+      .orderBy(desc(supportTickets.createdAt));
+  }
+
+  async getAllSupportTickets(): Promise<SupportTicket[]> {
+    return db.select().from(supportTickets)
+      .orderBy(desc(supportTickets.createdAt));
+  }
+
+  async updateTicketStatus(ticketId: number, status: string): Promise<void> {
+    await db.update(supportTickets)
+      .set({ status })
+      .where(eq(supportTickets.id, ticketId));
+  }
+
+  async addSupportMessage(ticketId: number, senderId: number, senderRole: string, message: string): Promise<SupportMessage> {
+    const [msg] = await db.insert(supportMessages)
+      .values({ ticketId, senderId, senderRole, message })
+      .returning();
+    return msg;
+  }
+
+  async getTicketMessages(ticketId: number): Promise<SupportMessage[]> {
+    return db.select().from(supportMessages)
+      .where(eq(supportMessages.ticketId, ticketId))
+      .orderBy(supportMessages.createdAt);
+  }
+
+  async createAnnouncement(message: string): Promise<Announcement> {
+    const [ann] = await db.insert(announcements)
+      .values({ message })
+      .returning();
+    return ann;
+  }
+
+  async getActiveAnnouncements(): Promise<Announcement[]> {
+    return db.select().from(announcements)
+      .where(eq(announcements.active, true))
+      .orderBy(desc(announcements.createdAt));
+  }
+
+  async deleteAnnouncement(id: number): Promise<void> {
+    await db.delete(announcements).where(eq(announcements.id, id));
+  }
+
+  async getAllAnnouncements(): Promise<Announcement[]> {
+    return db.select().from(announcements).orderBy(desc(announcements.createdAt));
   }
 }
 

@@ -375,5 +375,176 @@ export async function registerRoutes(
     res.json({ message: enabled ? "Maintenance mode enabled" : "Maintenance mode disabled" });
   });
 
+  app.post("/api/admin/bots/restart-all", requireAdmin, async (_req, res) => {
+    try {
+      const allBots = await storage.getAllUserBots();
+      const activeBots = allBots.filter(b => b.status === "connected");
+      let restarted = 0;
+      for (const bot of activeBots) {
+        try {
+          await PairingHandler.vpsRequest('/api/restart', { phone: bot.phoneNumber });
+          restarted++;
+        } catch (e) {
+          console.error(`[ADMIN] Failed to restart bot ${bot.phoneNumber}:`, e);
+        }
+      }
+      res.json({ message: `Restarted ${restarted}/${activeBots.length} bots` });
+    } catch (err) {
+      console.error("[ADMIN] Restart all error:", err);
+      res.status(500).json({ message: "Failed to restart bots" });
+    }
+  });
+
+  app.get("/api/notifications", requireAuth, async (req, res) => {
+    try {
+      const notifs = await storage.getUserNotifications(req.session.userId!);
+      const unreadCount = await storage.getUnreadNotificationCount(req.session.userId!);
+      res.json({ notifications: notifs, unreadCount });
+    } catch (err) {
+      console.error("[NOTIF] Error:", err);
+      res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+
+  app.post("/api/notifications/:id/read", requireAuth, async (req, res) => {
+    try {
+      await storage.markNotificationRead(parseInt(req.params.id), req.session.userId!);
+      res.json({ message: "Marked as read" });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to mark notification" });
+    }
+  });
+
+  app.post("/api/notifications/read-all", requireAuth, async (req, res) => {
+    try {
+      await storage.markAllNotificationsRead(req.session.userId!);
+      res.json({ message: "All marked as read" });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to mark notifications" });
+    }
+  });
+
+  app.get("/api/support/tickets", requireAuth, async (req, res) => {
+    try {
+      const tickets = await storage.getUserSupportTickets(req.session.userId!);
+      res.json(tickets);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch tickets" });
+    }
+  });
+
+  app.post("/api/support/tickets", requireAuth, async (req, res) => {
+    try {
+      const { subject, message } = req.body;
+      if (!subject || !message) {
+        return res.status(400).json({ message: "Subject and message are required" });
+      }
+      const ticket = await storage.createSupportTicket(req.session.userId!, subject);
+      await storage.addSupportMessage(ticket.id, req.session.userId!, "user", message);
+      res.json(ticket);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to create ticket" });
+    }
+  });
+
+  app.get("/api/support/tickets/:id/messages", requireAuth, async (req, res) => {
+    try {
+      const ticketId = parseInt(req.params.id);
+      const ticket = await storage.getSupportTicket(ticketId);
+      if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+      if (ticket.userId !== req.session.userId! && req.session.userRole !== "admin") {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      const messages = await storage.getTicketMessages(ticketId);
+      res.json({ ticket, messages });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  app.post("/api/support/tickets/:id/messages", requireAuth, async (req, res) => {
+    try {
+      const ticketId = parseInt(req.params.id);
+      const ticket = await storage.getSupportTicket(ticketId);
+      if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+      if (ticket.userId !== req.session.userId! && req.session.userRole !== "admin") {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      const { message } = req.body;
+      if (!message) return res.status(400).json({ message: "Message is required" });
+      const role = req.session.userRole || "user";
+      const msg = await storage.addSupportMessage(ticketId, req.session.userId!, role, message);
+      res.json(msg);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  app.get("/api/admin/support/tickets", requireAdmin, async (_req, res) => {
+    try {
+      const tickets = await storage.getAllSupportTickets();
+      const allUsers = await storage.getAllUsers();
+      const allBots = await storage.getAllUserBots();
+      const userMap = new Map(allUsers.map(u => [u.id, u]));
+      const botMap = new Map(allBots.map(b => [b.userId, b]));
+      const ticketsWithUser = tickets.map(t => ({
+        ...t,
+        user: userMap.get(t.userId),
+        bot: botMap.get(t.userId),
+      }));
+      res.json(ticketsWithUser);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch tickets" });
+    }
+  });
+
+  app.post("/api/admin/support/tickets/:id/status", requireAdmin, async (req, res) => {
+    try {
+      const { status } = req.body;
+      await storage.updateTicketStatus(parseInt(req.params.id), status);
+      res.json({ message: "Status updated" });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to update status" });
+    }
+  });
+
+  app.get("/api/announcements", async (_req, res) => {
+    try {
+      const anns = await storage.getActiveAnnouncements();
+      res.json(anns);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch announcements" });
+    }
+  });
+
+  app.post("/api/admin/announcements", requireAdmin, async (req, res) => {
+    try {
+      const { message } = req.body;
+      if (!message) return res.status(400).json({ message: "Message is required" });
+      const ann = await storage.createAnnouncement(message);
+      res.json(ann);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to create announcement" });
+    }
+  });
+
+  app.delete("/api/admin/announcements/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteAnnouncement(parseInt(req.params.id));
+      res.json({ message: "Announcement deleted" });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to delete announcement" });
+    }
+  });
+
+  app.get("/api/admin/announcements", requireAdmin, async (_req, res) => {
+    try {
+      const anns = await storage.getAllAnnouncements();
+      res.json(anns);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch announcements" });
+    }
+  });
+
   return httpServer;
 }
