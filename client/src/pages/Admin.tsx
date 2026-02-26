@@ -121,6 +121,14 @@ export default function Admin() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
+              sys?.vpsConnected
+                ? "bg-primary/10 text-primary"
+                : "bg-destructive/10 text-destructive"
+            }`} data-testid="text-vps-status">
+              <span className={`w-2 h-2 rounded-full ${sys?.vpsConnected ? "bg-primary animate-pulse" : "bg-destructive"}`} />
+              VPS {sys?.vpsConnected ? "Connected" : "Offline"}
+            </span>
             <button
               onClick={() => toggleMaintenance.mutate(!isMaintenanceOn)}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${

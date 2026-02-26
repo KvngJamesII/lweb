@@ -192,6 +192,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "No bot connected" });
       }
       PairingHandler.cancelPairing(bot.phoneNumber);
+      PairingHandler.removeBot(bot.phoneNumber);
       PairingHandler.deleteUserData(bot.phoneNumber);
       await storage.deleteUserBot(req.session.userId!);
       res.json({ message: "Bot disconnected" });
@@ -314,7 +315,7 @@ export async function registerRoutes(
     const userId = parseInt(req.params.userId);
     const bot = await storage.getUserBot(userId);
     if (!bot) return res.status(404).json({ message: "No bot found for this user" });
-    PairingHandler.startBot(bot.phoneNumber);
+    await PairingHandler.vpsRequest('/api/restart', { phone: bot.phoneNumber });
     await storage.updateUserBotStatus(userId, "connected");
     res.json({ message: "Bot restarted" });
   });
@@ -323,15 +324,16 @@ export async function registerRoutes(
     const userId = parseInt(req.params.userId);
     const bot = await storage.getUserBot(userId);
     if (!bot) return res.status(404).json({ message: "No bot found for this user" });
-    PairingHandler.cancelPairing(bot.phoneNumber);
+    await PairingHandler.vpsRequest('/api/stop', { phone: bot.phoneNumber });
     await storage.updateUserBotStatus(userId, "disconnected");
     res.json({ message: "Bot stopped" });
   });
 
   app.get("/api/admin/system", requireAdmin, async (_req, res) => {
-    const memUsage = process.memoryUsage();
-    const totalMem = os.totalmem();
-    const freeMem = os.freemem();
+    const vpsSystem = await PairingHandler.vpsRequest('/api/system');
+    const memUsage = vpsSystem?.memory || process.memoryUsage();
+    const totalMem = vpsSystem?.memory?.systemTotal || os.totalmem();
+    const freeMem = vpsSystem?.memory?.systemFree || os.freemem();
     const cpus = os.cpus();
     const loadAvg = os.loadavg();
     const allBots = await storage.getAllUserBots();
@@ -340,24 +342,25 @@ export async function registerRoutes(
 
     res.json({
       memory: {
-        heapUsed: memUsage.heapUsed,
-        heapTotal: memUsage.heapTotal,
-        rss: memUsage.rss,
+        heapUsed: vpsSystem?.memory?.heapUsed || memUsage.heapUsed,
+        heapTotal: vpsSystem?.memory?.heapTotal || memUsage.heapTotal,
+        rss: vpsSystem?.memory?.rss || memUsage.rss,
         external: memUsage.external,
         systemTotal: totalMem,
         systemFree: freeMem,
       },
       cpu: {
-        cores: cpus.length,
-        model: cpus[0]?.model || "Unknown",
-        loadAverage: loadAvg,
+        cores: vpsSystem?.cpu?.cores || cpus.length,
+        model: vpsSystem?.cpu?.model || cpus[0]?.model || "Unknown",
+        loadAverage: vpsSystem?.cpu?.loadAverage || loadAvg,
       },
-      uptime: process.uptime(),
-      platform: os.platform(),
-      nodeVersion: process.version,
+      uptime: vpsSystem?.uptime || process.uptime(),
+      platform: vpsSystem?.platform || os.platform(),
+      nodeVersion: vpsSystem?.nodeVersion || process.version,
       totalUsers: allUsers.length,
-      activeBots,
+      activeBots: vpsSystem?.runningBots || activeBots,
       totalBots: allBots.length,
+      vpsConnected: !!vpsSystem,
     });
   });
 

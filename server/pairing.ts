@@ -3,7 +3,6 @@ import pino from 'pino';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { spawn, ChildProcess } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,83 +14,50 @@ const logger = pino({ level: 'silent' });
 console.log('[PAIRING] Baileys module pre-loaded');
 
 export class PairingHandler {
-
-  static createUserDirectory(phone: string) {
-    const userDir = path.join(USERS_DIR, `user_${phone}`);
-    const authDir = path.join(userDir, 'auth_info');
-
-    if (!fs.existsSync(USERS_DIR)) fs.mkdirSync(USERS_DIR, { recursive: true });
-    if (!fs.existsSync(userDir)) fs.mkdirSync(userDir, { recursive: true });
-    if (!fs.existsSync(authDir)) fs.mkdirSync(authDir, { recursive: true });
-
-    return { userDir, authDir };
-  }
-
-  static clearAuthData(phone: string) {
-    const userDir = path.join(USERS_DIR, `user_${phone}`);
-    const authDir = path.join(userDir, 'auth_info');
-    if (fs.existsSync(authDir)) {
-      fs.rmSync(authDir, { recursive: true, force: true });
-    }
-  }
-
   static async generatePairingCode(
     phone: string,
-    onCodeGenerated: (code: string) => void,
-    onConnected: () => void,
-    onError: (error: Error) => void
+    onCodeGenerated: (code: string) => Promise<void>,
+    onConnected: () => Promise<void>,
+    onError: (error: Error) => Promise<void>
   ) {
-    this.cancelPairing(phone);
-    this.clearAuthData(phone);
+    if (!fs.existsSync(USERS_DIR)) fs.mkdirSync(USERS_DIR, { recursive: true });
+
+    const userDir = path.join(USERS_DIR, `user_${phone}`);
+    const authDir = path.join(userDir, 'auth_info');
+
+    if (fs.existsSync(userDir)) {
+      fs.rmSync(userDir, { recursive: true, force: true });
+    }
+    fs.mkdirSync(authDir, { recursive: true });
 
     let attempts = 0;
     const maxAttempts = 3;
     let codeGenerated = false;
     let connectionSuccessful = false;
 
-    let waVersion: [number, number, number] | undefined;
-    try {
-      const { version } = await fetchLatestBaileysVersion();
-      waVersion = version;
-      console.log(`[PAIRING] WhatsApp version: ${version.join('.')}`);
-    } catch {}
-
     const startConnection = async () => {
       attempts++;
       console.log(`[PAIRING] Attempt ${attempts}/${maxAttempts} for ${phone}`);
 
       try {
-        const { userDir, authDir } = this.createUserDirectory(phone);
+        const { version } = await fetchLatestBaileysVersion();
+        if (attempts === 1) console.log(`[PAIRING] WhatsApp version: ${version.join('.')}`);
+
         const { state, saveCreds } = await useMultiFileAuthState(authDir);
 
-        const socketConfig: any = {
+        const sock = makeWASocket({
           auth: state,
           logger,
-          browser: ['Ubuntu', 'Chrome', '20.0.04'],
           printQRInTerminal: false,
-          connectTimeoutMs: 60000,
-          defaultQueryTimeoutMs: 60000,
-          keepAliveIntervalMs: 10000,
-          emitOwnEvents: false,
-          markOnlineOnConnect: false,
-          syncFullHistory: false,
-          shouldIgnoreJid: () => false,
-          retryRequestDelayMs: 250,
-          maxMsgRetryCount: 5
-        };
-
-        if (waVersion) socketConfig.version = waVersion;
-
-        const sock = makeWASocket(socketConfig);
-
-        sock.ev.on('creds.update', () => {
-          saveCreds().catch(() => {});
+          version,
         });
 
-        sock.ev.on('connection.update', async (update: any) => {
+        sock.ev.on('creds.update', saveCreds);
+
+        sock.ev.on('connection.update', async (update) => {
           try {
             const { connection, lastDisconnect, qr } = update;
-            const statusCode = lastDisconnect?.error?.output?.statusCode;
+            const statusCode = (lastDisconnect?.error as any)?.output?.statusCode;
 
             console.log(`[PAIRING] conn=${connection} qr=${!!qr} status=${statusCode} codeGen=${codeGenerated}`);
 
@@ -123,23 +89,12 @@ export class PairingHandler {
                 }, null, 2));
               } catch {}
 
-              try {
-                const rootAuthDir = path.join(__dirname, '..', 'auth_info');
-                if (fs.existsSync(rootAuthDir)) {
-                  fs.rmSync(rootAuthDir, { recursive: true, force: true });
-                }
-                PairingHandler.copyDir(authDir, rootAuthDir);
-                console.log(`[PAIRING] Credentials copied to root auth_info/`);
-              } catch (e: any) {
-                console.error(`[PAIRING] Error copying credentials:`, e.message);
-              }
-
               onConnected();
 
-              setTimeout(() => {
+              setTimeout(async () => {
                 try { sock.end(undefined); } catch {}
                 activeSessions.delete(phone);
-                PairingHandler.startBot(phone);
+                await PairingHandler.deployToVPS(phone, authDir);
               }, 3000);
             }
 
@@ -186,6 +141,82 @@ export class PairingHandler {
     }, 300000);
   }
 
+  static async deployToVPS(phone: string, authDir: string): Promise<boolean> {
+    const vpsUrl = process.env.VPS_URL;
+    const vpsApiKey = process.env.VPS_API_KEY;
+
+    if (!vpsUrl || !vpsApiKey) {
+      console.log('[PAIRING] VPS_URL or VPS_API_KEY not set, skipping VPS deployment');
+      return false;
+    }
+
+    try {
+      const authFiles: { name: string; content: string }[] = [];
+
+      function readDirRecursive(dir: string, prefix: string = '') {
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
+          if (entry.isDirectory()) {
+            readDirRecursive(fullPath, relativePath);
+          } else {
+            const content = fs.readFileSync(fullPath);
+            authFiles.push({ name: relativePath, content: content.toString('base64') });
+          }
+        }
+      }
+
+      readDirRecursive(authDir);
+
+      console.log(`[VPS] Deploying bot for ${phone} to ${vpsUrl} (${authFiles.length} auth files)...`);
+
+      const response = await fetch(`${vpsUrl}/api/deploy`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': vpsApiKey,
+        },
+        body: JSON.stringify({ phone, authFiles }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        console.log(`[VPS] Bot deployed successfully for ${phone}`);
+        return true;
+      } else {
+        console.error(`[VPS] Deploy failed:`, result.error || result);
+        return false;
+      }
+    } catch (err: any) {
+      console.error(`[VPS] Deploy error:`, err.message);
+      return false;
+    }
+  }
+
+  static async vpsRequest(endpoint: string, body?: any): Promise<any> {
+    const vpsUrl = process.env.VPS_URL;
+    const vpsApiKey = process.env.VPS_API_KEY;
+
+    if (!vpsUrl || !vpsApiKey) return null;
+
+    try {
+      const response = await fetch(`${vpsUrl}${endpoint}`, {
+        method: body ? 'POST' : 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': vpsApiKey,
+        },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      return await response.json();
+    } catch (err: any) {
+      console.error(`[VPS] Request error (${endpoint}):`, err.message);
+      return null;
+    }
+  }
+
   static deleteUserData(phone: string): boolean {
     const userDir = path.join(USERS_DIR, `user_${phone}`);
     try {
@@ -204,66 +235,15 @@ export class PairingHandler {
     return false;
   }
 
-  static copyDir(src: string, dest: string): void {
-    fs.mkdirSync(dest, { recursive: true });
-    const entries = fs.readdirSync(src, { withFileTypes: true });
-    for (const entry of entries) {
-      const srcPath = path.join(src, entry.name);
-      const destPath = path.join(dest, entry.name);
-      if (entry.isDirectory()) {
-        PairingHandler.copyDir(srcPath, destPath);
-      } else {
-        fs.copyFileSync(srcPath, destPath);
-      }
-    }
+  static startBot(phone: string): void {
+    PairingHandler.vpsRequest('/api/start-existing', { phone });
   }
 
-  private static botProcess: ChildProcess | null = null;
+  static stopBot(phone: string): void {
+    PairingHandler.vpsRequest('/api/stop', { phone });
+  }
 
-  static startBot(ownerPhone: string): void {
-    if (PairingHandler.botProcess) {
-      console.log('[PAIRING] Killing existing bot process...');
-      try { PairingHandler.botProcess.kill(); } catch {}
-      PairingHandler.botProcess = null;
-    }
-
-    const botPath = path.join(__dirname, '..', 'bot.cjs');
-    if (!fs.existsSync(botPath)) {
-      console.error('[PAIRING] bot.cjs not found at:', botPath);
-      return;
-    }
-
-    console.log(`[PAIRING] Starting bot for owner ${ownerPhone}...`);
-
-    const child = spawn('node', [botPath], {
-      cwd: path.join(__dirname, '..'),
-      env: {
-        ...process.env,
-        BOT_OWNER: ownerPhone,
-        YOUTUBE_DL_SKIP_PYTHON_CHECK: '1',
-      },
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-
-    child.stdout?.on('data', (data: Buffer) => {
-      const lines = data.toString().trim().split('\n');
-      for (const line of lines) {
-        console.log(`[BOT] ${line}`);
-      }
-    });
-
-    child.stderr?.on('data', (data: Buffer) => {
-      const lines = data.toString().trim().split('\n');
-      for (const line of lines) {
-        console.error(`[BOT-ERR] ${line}`);
-      }
-    });
-
-    child.on('exit', (code) => {
-      console.log(`[PAIRING] Bot process exited with code ${code}`);
-      PairingHandler.botProcess = null;
-    });
-
-    PairingHandler.botProcess = child;
+  static removeBot(phone: string): void {
+    PairingHandler.vpsRequest('/api/remove', { phone });
   }
 }

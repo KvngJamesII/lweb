@@ -1,0 +1,22 @@
+{
+  "name": "luca-bot-manager",
+  "version": "1.0.0",
+  "description": "LUCA Bot Manager - manages WhatsApp bot instances",
+  "main": "bot-manager.js",
+  "scripts": {
+    "start": "node bot-manager.js",
+    "pm2:start": "pm2 start bot-manager.js --name luca-manager",
+    "pm2:restart": "pm2 restart luca-manager",
+    "pm2:stop": "pm2 stop luca-manager",
+    "pm2:logs": "pm2 logs luca-manager"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.16",
+    "express": "^4.21.2",
+    "pino": "^9.6.0",
+    "pino-pretty": "^13.0.0",
+    "sharp": "^0.33.5",
+    "axios": "^1.7.9",
+    "yt-search": "^2.12.1"
+  }
+}
