@@ -1,9 +1,16 @@
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+
+let openai: OpenAI | null = null;
+if (apiKey) {
+  openai = new OpenAI({
+    apiKey,
+    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL || undefined,
+  });
+} else {
+  console.warn("[AI-SUPPORT] No OpenAI API key found. AI support will use fallback responses.");
+}
 
 const SYSTEM_PROMPT = `You are LUCA Bot's friendly and helpful support assistant. You work for the LUCA Bot WhatsApp bot management platform. Your name is "LUCA Support AI". You respond in a warm, human-like conversational tone — concise and helpful.
 
@@ -108,6 +115,10 @@ IMPORTANT RULES FOR YOU:
 export async function getAiSupportResponse(
   conversationHistory: { role: string; content: string }[],
 ): Promise<string> {
+  if (!openai) {
+    return "Hi there! Our AI assistant is currently being set up. In the meantime, click the \"Live Agent\" button and a support agent will help you shortly!";
+  }
+
   try {
     const messages: OpenAI.ChatCompletionMessageParam[] = [
       { role: "system", content: SYSTEM_PROMPT },
